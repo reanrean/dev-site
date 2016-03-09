@@ -1,4 +1,6 @@
-var tasksRaw_add=[
+var taskOrder=['simple','cute','active','pure','cool'];
+
+var tasksAdd=[
 ['联盟委托: 1-1','pure','cute'],
 ['联盟委托: 1-2','simple','active'],
 ['联盟委托: 1-3','cool','pure'],
@@ -21,3 +23,15 @@ var tasksRaw_add=[
 ['联盟委托: 3-6','simple','active'],
 ['联盟委托: 3-7','active','simple'],
 ];
+
+var tasksRaw_Add=tasksRaw;
+
+function test(){
+	for (var theme in tasksRaw_Add){
+		for (var i in tasksAdd){
+			if (theme==tasksAdd[i][0]){
+				tasksRaw_Add(theme)=1;//*boost
+			}
+		}
+	}
+}
