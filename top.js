@@ -1,8 +1,8 @@
 $(document).ready(function () {
+	show_limitNote();
 	enterKey();
 	gen_setList();
 	$("#showCnt").val(5);
-	show_limitNote();
 });
 
 var top_id='';
