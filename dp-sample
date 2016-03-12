@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<meta http-equiv="Content-Type" content="text/html"; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="../../css/style.css" />
+<link rel="stylesheet" type="text/css" href="../../css/dp-style.css" />
+<script type="text/javascript" src="dp.js"></script>
+</head>
+
+<body>
+<div class="myframe" >
+  <p class="title1">最新活动</p>
+  <hr class="mhr"/>
+  <p class="normal"><span class="title3">更新时间：</span>2016-03-11<br>
+    <span class="title3">更新人员：</span>Rean翎</p>
+  <form action="">
+  <input type="radio" name="limit" id="limitn" value="n" checked onclick="chgMode(this.value)"><label for="limitn">标准权重</label>
+  <input type="radio" name="limit" id="limitl" value="l" onclick="chgMode(this.value)"><label for="limitl">极限权重</label><br>
+  </form>
+<!--child content start-->
+  <p class="title2">非套装部件</p>
+  <span class="norm">
+<!--normal table--><table border="1" class="calcByAll"><tbody><tr><td>名称</td><td>部位</td><td>顶配</td><td>竞技场</td><td>联盟</td><td>关卡</td></tr></table>
+  </span>
+  <span class="limit">
+<!--limit table--><table border="1" class="calcByAll"><tbody><tr><td>名称</td><td>部位</td><td>顶配</td><td>竞技场</td><td>联盟(极限)</td><td>关卡(极限)</td></tr></table>
+  </span>
+<!--child content end-->
+</div>
+</body>
+</html>
