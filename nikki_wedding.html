@@ -1,4 +1,3 @@
-
 <!DOCTYPE HTML>
 <html lang="zh">
 <head>
@@ -60,7 +59,7 @@ function init(){
 	//document.getElementById("table").innerHTML = table;
 	
 	//var input='<table border="0">'+tr(td(''),'style="display:none"');
-	var input=table;
+	input=table;
 	input+=tr(td('已领消费奖励档次：'+selectBox('already_consume','calc(calcind)',consume),'style="text-align:left" colspan="3"'));
 	input+=tr(td('預計消费档次　　：'+selectBox('plan_consume','calc(calcind)',consume)+'<br>'+remark('*若花钻数高于预计消费，会自动调高此数值'),'style="text-align:left" colspan="3"'));
 	input+=tr(td('剩余天数　　　　：'+inputBox('remain_days','calc(calcind)'),'style="text-align:left" colspan="3"'));
@@ -87,15 +86,15 @@ function init(){
 }
 function checkall(n){
 	var pos=0;
-	for (var i=0;i<n;i++){
+	for (i=0;i<n;i++){
 		pos+=setCnt[i];
 	}
 	if (document.getElementById('all'+n).checked){
-		for (var i=pos;i<pos+setCnt[n];i++){
+		for (i=pos;i<pos+setCnt[n];i++){
 			document.getElementById('own'+i).checked=true;
 		}
 	}else{
-		for (var i=pos;i<pos+setCnt[n];i++){
+		for (i=pos;i<pos+setCnt[n];i++){
 			document.getElementById('own'+i).checked=false;
 		}
 	};
@@ -161,9 +160,9 @@ function calc(ind){
 	var calcres='<table>'+tr(td('计算结果：'));
 	calcres+=tr(td('还需刷'+rem+'个誓言戒指（共需'+aim+'个）'));
 	calcres+=tr(td('还需挑战'+times+'次（免费'+to_get_times+'次）'));
-	calcres+=tr(td('还需'+diff_stamina+'体+每日'+stamina_daily+'体×'+remain_days+'天+今天'+stamina_today+'体='+stamina_total+'体'));
+	calcres+=tr(td('还需'+diff_stamina+'体买次数+每日'+stamina_daily+'体×'+remain_days+'天+今天'+stamina_today+'体='+stamina_total+'体'));
 	calcres+=tr(td('还需购买'+to_buy+'次，花钻'+to_pay+'个'));
-	calcres+=tr(td('≈每天挑战'+diff_times_daily+'次，购买'+to_buy_daily+'次='+to_pay_daily+'钻，消耗'+stamina_daily_tot+'体'));
+	calcres+=tr(td('≈每天：挑战'+diff_times_daily+'次，购买'+to_buy_daily+'次='+to_pay_daily+'钻，消耗'+stamina_daily_tot+'体'));
 	calcres+='</table>';
 	document.getElementById("calcres").innerHTML = calcres;
 	
