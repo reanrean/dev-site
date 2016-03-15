@@ -55,22 +55,22 @@ function init(){
 		line+=td(cell1,'style="border-right-width:0"')+td(cell2,'style="border-left-width:0"');
 		table+=tr(line);
 	}
-	//table+='</table>';
-	//document.getElementById("table").innerHTML = table;
+	table+='</table>';
+	document.getElementById("table").innerHTML = table;
 	
-	//var input='<table border="0">'+tr(td(''),'style="display:none"');
-	input=table;
-	input+=tr(td('已领消费奖励档次：'+selectBox('already_consume','calc(calcind)',consume),'style="text-align:left" colspan="3"'));
-	input+=tr(td('預計消费档次　　：'+selectBox('plan_consume','calc(calcind)',consume)+'<br>'+remark('*若花钻数高于预计消费，会自动调高此数值'),'style="text-align:left" colspan="3"'));
-	input+=tr(td('剩余天数　　　　：'+inputBox('remain_days','calc(calcind)'),'style="text-align:left" colspan="3"'));
-	input+=tr(td('今天剩余次数　　：'+inputBox('remain_today','calc(calcind)'),'style="text-align:left" colspan="3"'));
-	input+=tr(td('当前誓言戒指　　：'+inputBox('current','calc(calcind)'),'style="text-align:left" colspan="3"'));
-	input+=tr(td('预计胜率(%) 　　：'+inputBox('pct_exp','calc(1)')+'<br>预计失败场数　　：'+inputBox('wrong_exp','calc(2)')+'<br>'+remark('*只需填写一项，会自动计算另一项'),'style="text-align:left" colspan="3"'));
+	var input='<table border="0">';
+	input+=tr(td('已领消费奖励档次：'+selectBox('already_consume','calc(calcind)',consume)));
+	input+=tr(td('預計消费档次　　：'+selectBox('plan_consume','calc(calcind)',consume)));
+	input+=tr(td('剩余天数　　　　：'+inputBox('remain_days','calc(calcind)')));
+	input+=tr(td('今天剩余次数　　：'+inputBox('remain_today','calc(calcind)')));
+	input+=tr(td('当前誓言戒指　　：'+inputBox('current','calc(calcind)')));
+	input+=tr(td('预计胜率(%) 　　：'+inputBox('pct_exp','calc(1)'))+td(remark('*只需填写一项，会自动计算另一项'),'rowspan="2"'));
+	input+=tr(td('预计失败场数　　：'+inputBox('wrong_exp','calc(2)')));
 	input+='</table>';
 	input+='<hr>';
 	document.getElementById("input").innerHTML = input;
 	document.getElementById("plan_consume").value = 1999;
-	
+		
 	var date_now=new Date();
 	var time_end=new Date("3/17/2016 23:59:59 GMT+0800").getTime();
 	var time_now=date_now.getTime();
@@ -78,7 +78,7 @@ function init(){
 	if(date_now.getHours()<5&&time_end-time_now>0){time_d+=1;}
 	document.getElementById("remain_days").value = time_d;
 	document.getElementById("remain_today").value = 0;
-	document.getElementById('current').value = 0;
+	document.getElementById('current').value = 5;
 	document.getElementById('pct_exp').value = 100;
 	document.getElementById('wrong_exp').value = 0;
 	setInterval(settime, 1000);
@@ -158,11 +158,11 @@ function calc(ind){
 	var stamina_daily_tot=(stamina_total/remain_days).toFixed(1);
 	
 	var calcres='<table>'+tr(td('计算结果：'));
-	calcres+=tr(td('还需刷'+rem+'个誓言戒指（共需'+aim+'个）','style="text-align:left"'));
-	calcres+=tr(td('还需挑战'+times+'次（免费'+to_get_times+'次）','style="text-align:left"'));
-	calcres+=tr(td('还需'+diff_stamina+'体买次数+每日'+stamina_daily+'体×'+remain_days+'天+今天'+stamina_today+'体='+stamina_total+'体','style="text-align:left"'));
-	calcres+=tr(td('还需购买'+to_buy+'次，花钻'+to_pay+'个','style="text-align:left"'));
-	calcres+=tr(td('≈每天：挑战'+diff_times_daily+'次，购买'+to_buy_daily+'次='+to_pay_daily+'钻，消耗'+stamina_daily_tot+'体','style="text-align:left"'));
+	calcres+=tr(td('还需刷'+rem+'个誓言戒指（共需'+aim+'个）'));
+	calcres+=tr(td('还需挑战'+times+'次（免费'+to_get_times+'次）'));
+	calcres+=tr(td('还需'+diff_stamina+'体+每日'+stamina_daily+'体×'+remain_days+'天+今天'+stamina_today+'体='+stamina_total+'体'));
+	calcres+=tr(td('还需购买'+to_buy+'次，花钻'+to_pay+'个'));
+	calcres+=tr(td('≈每天挑战'+diff_times_daily+'次，购买'+to_buy_daily+'次='+to_pay_daily+'钻，消耗'+stamina_daily_tot+'体'));
 	calcres+='</table>';
 	document.getElementById("calcres").innerHTML = calcres;
 	
@@ -207,20 +207,14 @@ function selectBox(id,onchange,valArr,textArr){
 </script> 
 </head>
 <body>
-<div class="myframe" >
-<p align="center" class="title1">
-活动·梦恋奇迹2计算器<!--　2016.3.11-2016.3.17-->
+<p>
+<b>奇迹暖暖梦恋奇迹2　2016.3.11-2016.3.17</b><br/>
 </p>
-<hr class="mhr">
-<p class="normal">
-	<span class="title3">更新时间：</span><span id="lastupd">2016-03-11</span><br>
-	<span class="title3">更新人员：</span>Rean翎
-</p>
-<p align="center">距离活动结束还有　<span id="showTime"></span></p>
-<p align="center"><span id="table"></span>
+<p>距离活动结束还有　<span id="showTime"></span></p>
+<p>
+<span id="table"></span>
 <span id="input"></span>
 <span id="calcres"></span>
 </p>
-</div>
 </body>
 </html>
