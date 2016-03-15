@@ -86,15 +86,15 @@ function init(){
 }
 function checkall(n){
 	var pos=0;
-	for ( i=0;i<n;i++){
+	for (i=0;i<n;i++){
 		pos+=setCnt[i];
 	}
 	if (document.getElementById('all'+n).checked){
-		for  (i=pos;i<pos+setCnt[n];i++){
+		for (i=pos;i<pos+setCnt[n];i++){
 			document.getElementById('own'+i).checked=true;
 		}
 	}else{
-		for  (i=pos;i<pos+setCnt[n];i++){
+		for (i=pos;i<pos+setCnt[n];i++){
 			document.getElementById('own'+i).checked=false;
 		}
 	};
