@@ -90,11 +90,11 @@ function checkall(n){
 		pos+=setCnt[i];
 	}
 	if (document.getElementById('all'+n).checked){
-		for  i=pos;i<pos+setCnt[n];i++){
+		for  (i=pos;i<pos+setCnt[n];i++){
 			document.getElementById('own'+i).checked=true;
 		}
 	}else{
-		for  i=pos;i<pos+setCnt[n];i++){
+		for  (i=pos;i<pos+setCnt[n];i++){
 			document.getElementById('own'+i).checked=false;
 		}
 	};
