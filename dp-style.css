@@ -15,8 +15,9 @@ td.inTop,td.haveTop {
 .nobr {
   white-space:nowrap;
 }
-a {
+td a {
   color:inherit;
+  text-decoration:underline;
 }
 a.aTooltip {
   text-decoration:none;
