@@ -1,4 +1,5 @@
 //note: 1. search result add button, 2. add all set 3. genfactor page
+//add merchant sum in end
 
 $(document).ready(function () {
 	calcDependencies();
