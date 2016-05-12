@@ -1,28 +1,30 @@
-table.calcByAll {
+table.calcByAll,table.propByAll {
   width:100%;
   table-layout:fixed;
 }
-table.calcByAll tr td:nth-child(-n+3) {
+table.calcByAll tr td:nth-child(-n+3),table.propByAll tr td:nth-child(-n+2) {
   width:10%;
 }
-table.calcSrc tr td:nth-child(3),table.calcSrc tr td:nth-child(4) {
-  width:7.5%;
+table.calcSrc tr td:nth-child(4),table.propSrc tr td:nth-child(3) {
+  width:7%;
 }
-td.inTop,td.haveTop {
+tr.top td {
   color:red;
-  background-color: rgba(255, 230, 245, 0.5);
+  background-color: rgba(255, 240, 250, 0.5);
 }
-td.inName{
-  word-break:break-all;
-}
-.nobr {
+em, .nobr { /*hijack em for nobr*/
   white-space:nowrap;
+  font-style:normal;
 }
 td a {
   color:inherit;
   text-decoration:underline;
 }
 a.aTooltip {
+  text-decoration:none;
+}
+a.cTip {
+  color:#3377ff;
   text-decoration:none;
 }
 [tooltip]:hover:before {
@@ -38,12 +40,14 @@ a.aTooltip {
 	background-color: #FFFFFA;
 	text-align:left;
 }
-.normTip [tooltip]:hover:before {
-	margin-left:0px; 
+table.propByAll [tooltip]:hover:before {
 	width: 170px; 
 	word-break:break-all; 
 	white-space:pre-wrap;
 }
-.limit {
+table.calcByAll tr td:nth-child(1) [tooltip]:hover:before, table.propByAll tr td:nth-child(1) [tooltip]:hover:before {
+	margin-left:0px;
+}
+.limit, .prop {
   display:none;
 }
