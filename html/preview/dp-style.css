@@ -2,10 +2,10 @@ table.calcByAll,table.propByAll {
   width:100%;
   table-layout:fixed;
 }
-table.calcByAll tr td:nth-child(-n+3),table.propByAll tr td:nth-child(-n+2) {
+table.calcByAll tr td:nth-child(-n+3), table.propByAll tr td:nth-child(-n+2), table.propSrc tr td:nth-child(3) {
   width:10%;
 }
-table.calcSrc tr td:nth-child(4),table.propSrc tr td:nth-child(3) {
+table.calcSrc tr td:nth-child(4) {
   width:7%;
 }
 tr.top td {
@@ -40,10 +40,13 @@ a.cTip {
 	background-color: #FFFFFA;
 	text-align:left;
 }
-table.propByAll [tooltip]:hover:before {
-	width: 170px; 
-	word-break:break-all; 
+table.propByAll tr td:nth-last-child(2) [tooltip]:hover:before, table.propByAll tr td:nth-last-child(3) [tooltip]:hover:before {
+	width: 150px; 
+	word-break:break-all;
 	white-space:pre-wrap;
+}
+table.propByAll tr td:nth-last-child(1) [tooltip]:hover:before {
+	margin-left:-120px; 
 }
 table.calcByAll tr td:nth-child(1) [tooltip]:hover:before, table.propByAll tr td:nth-child(1) [tooltip]:hover:before {
 	margin-left:0px;
