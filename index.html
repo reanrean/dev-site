@@ -1,0 +1,159 @@
+
+<!DOCTYPE html>
+
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="css/style_pc.css" />
+<link rel="icon" href="images/icon.jpg" />
+<title>傲娇攻略组-奇迹暖暖攻略</title>
+<style type="text/css"></style>
+
+<!--图标样式-->
+<link rel="stylesheet" type="text/css" href="css/bootstrap.min.css" />
+<link rel="stylesheet" type="text/css" href="css/style_mobile.css" id="mycss"/>
+
+<!--主要样式-->
+<script type="text/javascript" src="javascripts/jquery-1.7.2.min.js"></script>
+
+<script type="text/javascript">
+$(function(){		
+		try{
+	    if (/Android|webOS|iPhone|iPod|BlackBerry/i.test(navigator.userAgent)) {
+		$("#Container").attr("url", "./images/background_mobile.png");
+	        $("#mycss").attr("href","./css/style_mobile.css");
+	        $('.linkmenu').on('click', function (e) {    		
+	    		$('#bmenu').css("display", "none");
+	    		$('#lmenu').css("display", "block");    		
+	        });
+	    	$('#lmenu').on('click', function (e) {    		
+	    		$('#bmenu').css("display", "block");
+	    		$('#lmenu').css("display", "none");    		
+	    	});
+	    }else{	    		
+		$("#Container").attr("url", "./images/background_pc.png");
+	        $("#mycss").attr("href","./css/style_pc.css");
+	    }
+		}catch(e){}
+    $('.tree li:has(ul)').addClass('parent_li');
+    
+    
+    
+    $('.tree li.parent_li > span').on('click', function (e) {
+        var children = $(this).parent('li.parent_li').find(' > ul > li');
+        
+        if (children.parent('ul').css("display") == "none")
+        {
+        	children.parent('ul').css("display", "block");
+        	$(this).find(' > i').addClass('icon-minus').removeClass('icon-plus');
+        }
+        else
+        {
+	        if (children.is(":visible")) {
+	        	  children.hide('fast');            
+	            $(this).find(' > i').addClass('icon-plus').removeClass('icon-minus');
+	        } else {
+	            children.show('fast');
+	            $(this).find(' > i').addClass('icon-minus').removeClass('icon-plus');
+	        }
+	        e.stopPropagation();
+	      }
+    });
+});
+
+function gotop(){ 
+        window.scrollTo(0,0); 
+    } 
+</script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?1444cc99125f5ae3820e95e73b558baa";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+<!--评论框-->
+<!--<script src="http://static.duoshuo.com/embed.js"></script>-->
+<script>
+/*var duoshuoQuery = {short_name:"aojiaogongluezu"};
+function toggleDuoshuoComments(ind){
+    container='#comment-box';
+    if(ind){
+        $('.ds-comments').html('');
+        $('#guestbook_href').html('<a href="javascript:void(0);" onclick="toggleDuoshuoComments();">展开评论</a>');
+    }else{
+        $(container).html('');
+        $('#guestbook_href').html('<a href="javascript:void(0);" onclick="toggleDuoshuoComments(1);">收起评论</a>');
+        var el = document.createElement('div');
+        el.setAttribute('data-thread-key', 'aojiaogongluezu_qjnn');
+        el.setAttribute('data-url', 'http://aojiaogongluezu.github.io/nikkiup2u3/');
+        el.setAttribute('data-title', "奇迹暖暖傲娇攻略组");
+        DUOSHUO.EmbedThread(el);
+        jQuery(container).append(el);
+    }
+}*/
+
+//链接到框架
+function frametarget(){
+    var location_href=window.location.href;
+    var location_href_pos=location_href.indexOf('index.html?');
+    var conv_href=location_href.substr(location_href_pos+'index.html?'.length);
+    if (location_href_pos>0 && conv_href.indexOf('.html')>0) {
+        $('iframe#framemain').attr('src',conv_href);
+    }
+}
+
+window.onload = function(){ 
+    frametarget();
+    //toggleDuoshuoComments();
+};
+</script>
+</head>
+
+<body>
+<div style='margin:0 auto;width:0px;height:0px;overflow:hidden;'><img src="images/bk1.png"></div>
+<div class="FloatMenu"> <span><a href="#top">回到顶部</a></span><br>
+  <span><a href="welcome.html" target="framemain"  onclick="gotop()">回到首页</a></span> </div>
+  <div id = "Content-Main">
+    <iframe id="nav" src="nav.html" frameborder="0" ></iframe>
+    <iframe name="framemain" src="welcome.html" frameborder="0" width="100%" id="framemain" onload="this.height=500" style="overflow-y:hidden;overflow-x:scroll;"></iframe>
+    <script type="text/javascript">
+        function reinitIframe(){
+            var iframe = document.getElementById("framemain");
+            var cssLink = document.createElement("link");
+            	cssLink.href = "http://aojiaogongluezu.github.io/nikkiup2u3/css/overflow.css";
+            	cssLink.rel = "stylesheet";
+            	cssLink.type = "text/css";
+            try{
+                var bHeight = iframe.contentWindow.document.body.scrollHeight;
+                var dHeight = iframe.contentWindow.document.documentElement.scrollHeight;
+                var fHeight = iframe.height;
+                if(dHeight&&fHeight){
+                    if(dHeight>fHeight||dHeight<fHeight-500) {
+                    	iframe.height = Math.max(500, dHeight); 
+                    	frames['framemain'].document.body.appendChild(cssLink);
+                    }
+                }else{
+                    iframe.height = Math.max(bHeight, dHeight+150);
+                    frames['framemain'].document.body.appendChild(cssLink);
+                }
+            }catch (ex){}
+        }
+        window.setInterval("reinitIframe()", 200);  
+    </script> 
+  </div>
+<!--  <div id="guestbook">
+    <div id="guestbook_href" style="display:none"></div>
+    <div id="comment-box" ></div>
+  </div>-->
+  <div id="Footer">
+    <li> <a href="http://weibo.com/p/1005055863288005"> 微博主页</a> 数据：翡翠-AW、又又-AW、云图-AW、minnn-AW；技术：夏天-AW、Rean翎-IQ、米露-AQ、火车-AW、黑的升华-AW；美工：米桃-AW、抹茶冰-IQ、九猫-IW；校对：兔子-IY/AW；公众号：麦纸-AW；微博：元宝-AW </li>
+    <li> <a href="http://ivangift.github.io/nikkiup2u3/"> 配装器（IP君版）</a> <a href="http://seal100x.github.io/nikkiup2u3/"> 配装器（小黑版）</a> </li>
+  </div>
+</div>
+</body>
+</html>
