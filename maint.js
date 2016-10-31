@@ -254,7 +254,7 @@ function arrowKey() {
 }
 
 function go_static(){
-	var radio=['construct','convert','merchant','pattern'];
+	var radio=['construct','convert','dye','evolve','merchant','pattern'];
 	var info = '<form action="">';
 	for (var i in radio){
 		info += '<label><input type="radio" name="radio_static" id="static_'+radio[i]+'" value="'+radio[i]+'" '+(i==0?'checked':'')+'>'+radio[i]+'</label><label>';
