@@ -1,9 +1,7 @@
 //var wname=[wardrobe,wardrobe_s,wardrobe_i];
 //var wowner=['rean','seal100x','ivangift'];
-//var wname=[wardrobe,wardrobe_s];
-//var wowner=['rean','seal100x'];
-var wname=[wardrobe];
-var wowner=['rean'];
+var wname=[wardrobe,wardrobe_s];
+var wowner=['rean','seal100x'];
 
 var rows=0;
 var field_desc=['名字','分类','编号','心级',
@@ -274,10 +272,18 @@ function static_generate(){
 	var static_input = $("#static_input").val();
 	if(static_input) {//$("#static_output").val(contentBy(contentOf(static_input)[0],'cloth'));
 		var contents = contentOf(static_input);
+		var out = '';
 		for (var i in contents){
-			var src = contentBy(contents,'id');
-			var tar = contentBy(contents,'cloth');
+			var src = contentBy(contents[i],'id');
+			var tar = contentBy(contents[i],'cloth');
+			var num = contentBy(contents[i],'num');
+			var src_c = convert_uid(src[0]);
+			for (var j in tar){
+				var tar_c = convert_uid(tar[j]);
+				out += "  ['"+src_c.mainType+"','"+src_c.id+"','"+tar_c.mainType+"','"+tar_c.id+"','"+num[j]+"','设'],\n"
+			}
 		}
+		$("#static_output").val(out);
 	}
 }
 
