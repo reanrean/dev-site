@@ -22,9 +22,7 @@ var lantu = {
 				suitSet[clothes[i].set]['score'] += isAccSumScore(clothes[i]);
 			}
 		}
-		for (var i in suitSet){
-			this.suitArray.push(suitSet[i]);
-		}
+		for (var i in suitSet) this.suitArray.push(suitSet[i]);
 		this.suitArray.sort(function(a,b){
 			return  b["score"] - a["score"];
 		});
@@ -36,11 +34,14 @@ var lantu = {
 		for (var i in clothes){
 			var name = clothes[i].name;
 			var type = clothes[i].type.type;
+			var matchStr = [];
 			if (matches(clothes[i])) clothes[i].calc(criteria);
 			for (j=0; j<name.length; j++){ //get name string
 				for (k=1; k<=2; k++){
 					if (j > name.length-k) continue;
 					var str = name.substr(j, k);
+					if ($.inArray(str,matchStr)<0) matchStr.push(str);
+					else continue;
 					if (wordSet[str] == null){
 						wordSet[str] = {};
 						wordSet[str]['name'] = str;
@@ -79,9 +80,7 @@ var lantu = {
 		}
 		
 		wordSet = removeRepelCates(wordSet);
-		for (var i in wordSet){
-			this.wordArray.push(wordSet[i]);
-		}
+		for (var i in wordSet) this.wordArray.push(wordSet[i]);
 		this.wordArray.sort(function(a,b){
 			return  b["score"] - a["score"];
 		});
@@ -99,10 +98,9 @@ var lantu = {
 			for (var j in tags){
 				if (!tags[j]) continue;
 				if (tags[j].indexOf('+')>=0) continue;
-				var type1 = type.split('·')[0]; 
-				var type2 = type1.indexOf('-')>=0 ? type1.split('-')[1] : type1;
-				if (type2 == '袜套') type2 = '袜子';
-				tagCate = type2+' + '+tags[j];
+				var subtype = getSubType(type);
+				if (subtype == '袜套') subtype = '袜子';
+				tagCate = [subtype,tags[j]].join(' + ');
 				var sumScore = isAccSumScore(clothes[i]);
 				if (tagSet[tagCate] == null){
 					tagSet[tagCate] = {};
@@ -132,9 +130,7 @@ var lantu = {
 			}
 		}
 		tagSet = removeRepelCates(tagSet);
-		for (var i in tagSet){
-			this.tagArray.push(tagSet[i]);
-		}
+		for (var i in tagSet) this.tagArray.push(tagSet[i]);
 		this.tagArray.sort(function(a,b){
 			return  b["score"] - a["score"];
 		});
@@ -155,6 +151,11 @@ var lantu = {
 				var strSet = '套装·'+keyword[w];
 				if (clothes[i].set == keyword[w]) matchStr.push(strSet);
 				if (name.indexOf(keyword[w])>=0) matchStr.push(keyword[w]);
+				if (keyword[w].indexOf('+')>=0) {
+					var tmp = keyword[w].replace(/\s+/g, '').split('+');
+					if (tmp[0]==getSubType(type) && tmp[1] && $.inArray(tmp[1],clothes[i].tags)>=0)
+						matchStr.push([tmp[0],tmp[1]].join(' + '));//remove space
+				}
 			}
 			if (matchStr.length ==0) continue;
 				
@@ -192,9 +193,7 @@ var lantu = {
 		}
 		for (var i in manualSet) if (i.indexOf('套装·')>=0) delete manualSet[i]['count'];
 		manualSet = removeRepelCates(manualSet);
-		for (var i in manualSet){
-			this.manualArray.push(manualSet[i]);
-		}
+		for (var i in manualSet) this.manualArray.push(manualSet[i]);
 		this.manualArray.sort(function(a,b){
 			return  b["score"] - a["score"];
 		});
@@ -302,9 +301,8 @@ function getSelectedSet(){
 function showAllowCates(){
 	filters = [];
 	for (var c in category){
-		var type1 = category[c].split('·')[0];
-		var type = type1.indexOf('-')>=0 ? type1.split('-')[1] : type1;
-		if ($.inArray(type, filters) >= 0) continue;
+		var type = getSubType(category[c]);
+		if ($.inArray(getSubType(type), filters) >= 0) continue;
 		$('#opt_allowCates').append('<label><input type="checkbox" checked />'+type+'</label>');
 		filters.push(type);
 	}
@@ -342,10 +340,13 @@ function onChangeCriteria() {
 }
 
 function matches(c) {
-	var type1 = c.type.type.split('·')[0];
-	var type = type1.indexOf('-')>=0 ? type1.split('-')[1] : type1;
-	if ($.inArray(type, filters) >= 0) return true;
+	if ($.inArray(getSubType(c.type.type), filters) >= 0) return true;
 	else return false;
+}
+
+function getSubType(type){
+	var type1 = type.split('·')[0];
+	return type1.indexOf('-')>=0 ? type1.split('-')[1] : type1;
 }
 
 function initEvent() {
@@ -378,6 +379,12 @@ function initEvent() {
 	$("#showManual").click(function(){
 		lantu.initManual($('#manualKeyWords').val());
 		if (lantu.manualArray.length>0) output.print('#manualList', lantu.manualArray);
+	});
+	$('#manualKeyWords').keydown(function(e) {
+		if (e.keyCode==13) {
+			$(this).blur();
+			$("#showManual").click();
+		}
 	});
 	$("#opt_allowCates_all").click(function(){
 		$("#opt_allowCates").html('');
