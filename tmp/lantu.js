@@ -173,7 +173,7 @@ var lantu = {
 				if (clothes[i].isF) continue;
 				var sumScore = isAccSumScore(clothes[i]);
 			
-				if(manualSet[matchStr[j]]['clothes'][type] == null){
+				if(manualSet[matchStr[j]]['typeScore'][type] == null){
 					manualSet[matchStr[j]]['clothes'][type] = clothes[i];
 					manualSet[matchStr[j]]['typeScore'][type] = sumScore;
 					manualSet[matchStr[j]]['score'] += sumScore;
@@ -303,7 +303,7 @@ function showAllowCates(){
 }
 
 function isAccSumScore(a){
-	if (a.type.mainType == "饰品") {return Math.round(accSumScore(a,$('#opt_accAmt').val()));}
+	if (a.type.mainType == "饰品") return Math.round(accSumScore(a,$('#opt_accAmt').val()));
 	else return a.sumScore;
 }
 
