@@ -2,6 +2,7 @@ var lantu = {
 	wordArray: [],
 	suitArray: [],
 	tagArray: [],
+	manualArray: [],
 	initSuit: function(){
 		this.suitArray = [];
 		var suitSet = {};
@@ -14,126 +15,81 @@ var lantu = {
 				if(suitSet[clothes[i].set] == null){
 					suitSet[clothes[i].set] = {};
 					suitSet[clothes[i].set]['name'] = clothes[i].set;
-					suitSet[clothes[i].set]['clothes'] = [];
+					suitSet[clothes[i].set]['clothes'] = {};
 					suitSet[clothes[i].set]['score'] = 0;
 				}
-				suitSet[clothes[i].set]['clothes'].push(clothes[i]);
+				suitSet[clothes[i].set]['clothes'][type] = clothes[i];
 				suitSet[clothes[i].set]['score'] += isAccSumScore(clothes[i]);
 			}
 		}
-		for(var i in suitSet){
+		for (var i in suitSet){
 			this.suitArray.push(suitSet[i]);
 		}
 		this.suitArray.sort(function(a,b){
 			return  b["score"] - a["score"];
 		});
-	},	
+	},
 	initWord: function(){
 		this.wordArray = [];
-	//var wordStr = function(){
-		var retWords = {};
-		var result = {};
+		var wordSet = {};
+		var existScore = getSelectedSet();
 		for (var i in clothes){
-			//get name string
 			var name = clothes[i].name;
-			for (j=0; j<name.length; j++){
+			var type = clothes[i].type.type;
+			if (matches(clothes[i])) clothes[i].calc(criteria);
+			for (j=0; j<name.length; j++){ //get name string
 				for (k=1; k<=2; k++){
 					if (j > name.length-k) continue;
 					var str = name.substr(j, k);
-					if (!retWords[str]) retWords[str] = 0;
-					retWords[str] += 1;
-				}
-			}
-			
-			//get score
-			if (!matches(clothes[i])) continue;
-			var type = clothes[i].type.type;
-			if (!result[type]) result[type] = [];
-			clothes[i].calc(criteria);
-			if (clothes[i].isF) continue;
-			result[type].push(clothes[i]);
-		}
-		
-		for (var i in retWords){//remove keywords with too many returns
-			if (i.indexOf("·")>=0 || retWords[i] > $('#opt_limitRet').val())
-				delete retWords[i];
-		}
-		
-		var resultWords = {};
-		for(var i in result){//取每个分类前80的衣服, 提取关键字
-			result[i].sort(byAccSumScore);
-			result[i].splice(80,9999);
-			for(var j in result[i]){//result[i][j] is clothes
-				var name = result[i][j].name;
-				var sumScore = isAccSumScore(result[i][j]);
-				for (var k in retWords){
-					if (name.indexOf(k)<0) continue;
-					if (resultWords[k] == null){
-						resultWords[k] = {};
-						resultWords[k]['name'] = k;
-						resultWords[k]['clothes'] = {};
-						resultWords[k]['score'] = 0;
-						resultWords[k]['count'] = retWords[k];
+					if (wordSet[str] == null){
+						wordSet[str] = {};
+						wordSet[str]['name'] = str;
+						wordSet[str]['clothes'] = {};
+						wordSet[str]['typeScore'] = {};
+						wordSet[str]['score'] = 0;
+						wordSet[str]['count'] = 0;
+						if (Object.keys(existScore).length) { //if any set selected, initialise typeScore
+							for (var t in existScore){
+								wordSet[str]['typeScore'][t] = existScore[t];
+							}
+						}
 					}
-					if(resultWords[k]['clothes'][i] == null){
-						resultWords[k]['clothes'][i] = result[i][j];
-						resultWords[k]['score'] += sumScore;
-					}else if (sumScore > isAccSumScore(resultWords[k]['clothes'][i])){
-						var scoreDiff = sumScore - isAccSumScore(resultWords[k]['clothes'][i]);
-						resultWords[k]['clothes'][i] = result[i][j];
-						resultWords[k]['score'] += scoreDiff;
+					wordSet[str]['count'] += 1;
+					
+					if (!matches(clothes[i])) continue;
+					if (clothes[i].isF) continue;
+					var sumScore = isAccSumScore(clothes[i]);
+					
+					if(wordSet[str]['typeScore'][type] == null){
+						wordSet[str]['clothes'][type] = clothes[i];
+						wordSet[str]['typeScore'][type] = sumScore;
+						wordSet[str]['score'] += sumScore;
+					}else if (sumScore > wordSet[str]['typeScore'][type]){
+						var scoreDiff = sumScore - wordSet[str]['typeScore'][type];
+						wordSet[str]['clothes'][type] = clothes[i];
+						wordSet[str]['typeScore'][type] = sumScore;
+						wordSet[str]['score'] += scoreDiff;
 					}
 				}
 			}
 		}
-		for(var i in resultWords){
-			this.wordArray.push(resultWords[i]);
+		for (var i in wordSet){//remove keywords with too many returns
+			if (i.indexOf("·")>=0 || wordSet[i]['count'] > $('#opt_limitRet').val())
+				delete wordSet[i];
+		}
+		
+		wordSet = removeRepelCates(wordSet);
+		for (var i in wordSet){
+			this.wordArray.push(wordSet[i]);
 		}
 		this.wordArray.sort(function(a,b){
 			return  b["score"] - a["score"];
 		});
 	},
-	/*getMostWord: function(result){
-		var resultWords = {};
-		for(var i in result){//取每个分类前80的衣服, 提取关键字
-			result[i].sort(byScore);
-			result[i].splice(80,9999);
-			resultWords[i] = [];
-			for(var j in result[i]){
-				resultWords[i].push.apply( resultWords[i], result[i][j].name.split('') );
-			}
-			resultWords[i] = unique3(resultWords[i]);
-		}
-		var wordNums = {};
-		for(var type in resultWords){//计算关键字数量
-			for(var j in resultWords[type]){
-				var quanzhong = type.indexOf("饰品") >= 0 ? $('#opt_accDeter').val() : 1;
-				if(wordNums[resultWords[type][j]] == null)
-					wordNums[resultWords[type][j]] = 0;
-				wordNums[resultWords[type][j]] = wordNums[resultWords[type][j]] + quanzhong;
-			}
-		}
-		
-		//TODO 界面
-		var str = "粉毛运动少年雅公子家雪美学长神奇幻者主银金红白发黑蓝小·棕灰之歌黄冰士枫蔷薇女墨绿人精灵马尾紫花蝶童心青月云舞娘轻音光曲幽语天兔乐珠华丽珍稀娃可时蕾鹿头古英糕满梦星莉蝴水兰千罗帽甜力宝温夜爱丝手果泡流的短生恋色姐茶影暖锦圣信海风莓园普通情落香清下意奶高娜暗耳桃带玫日夏典柔春竹巧调蜜草糖樱叶羽迹火皮空包迷球瑰克魔裙格结冬衣祥纹上凉牛仔领点巾纱服绒枝套礼外背衫披装条链环裤靴袜饰圈鞋跟冠项颈";
-		var notArray = str.split("");
-			
-		var mostWord = [];
-		for(var i in wordNums){
-			if(wordNums[i] > 3 &&  $.inArray(i, notArray) < 0){
-				mostWord.push({"name" : i , "num" : wordNums[i]});
-			}
-		}	
-		mostWord.sort(function(a,b){
-			return b["num"] - a["num"];
-		});
-		mostWord.splice(10,9999);//取前10多的关键字
-		
-		return mostWord;
-	},*/
 	initTag: function(){
 		this.tagArray = [];
 		var tagSet = {};
+		var existScore = getSelectedSet();
 		for (var i in clothes){
 			if (!matches(clothes[i])) continue;
 			clothes[i].calc(criteria);
@@ -143,31 +99,99 @@ var lantu = {
 			for (var j in tags){
 				if (tags[j]=="") continue;
 				if (tags[j].indexOf('+')>=0) continue;
-				tagCate = (type.indexOf('饰品')==0? type.split('·')[0] : type.split('-')[0])+' + '+tags[j];
+				var type1 = type.split('·')[0]; 
+				var type2 = type1.indexOf('-')>=0 ? type1.split('-')[1] : type1;
+				if (type2 == '袜套') type2 = '袜子';
+				tagCate = type2+' + '+tags[j];
 				var sumScore = isAccSumScore(clothes[i]);
 				if(tagSet[tagCate] == null){
 					tagSet[tagCate] = {};
 					tagSet[tagCate]['name'] = tagCate;
 					tagSet[tagCate]['clothes'] = {};
+					tagSet[tagCate]['typeScore'] = {};
 					tagSet[tagCate]['score'] = 0;
 					tagSet[tagCate]['count'] = 0;
+					if (Object.keys(existScore).length) { //if any set selected, initialise typeScore
+						for (var t in existScore){
+							tagSet[tagCate]['typeScore'][t] = existScore[t];
+						}
+					}
 				}
-				if(tagSet[tagCate]['clothes'][type] == null){
+				if(tagSet[tagCate]['typeScore'][type] == null){
 					tagSet[tagCate]['clothes'][type] = clothes[i];
+					tagSet[tagCate]['typeScore'][type] = sumScore;
 					tagSet[tagCate]['score'] += sumScore;
 					tagSet[tagCate]['count'] += 1;
-				}else if (sumScore > isAccSumScore(tagSet[tagCate]['clothes'][type])){
-					var scoreDiff = sumScore - isAccSumScore(tagSet[tagCate]['clothes'][type]);
+				}else if (sumScore > tagSet[tagCate]['typeScore'][type]){
+					var scoreDiff = sumScore - tagSet[tagCate]['typeScore'][type];
 					tagSet[tagCate]['clothes'][type] = clothes[i];
+					tagSet[tagCate]['typeScore'][type] = sumScore;
 					tagSet[tagCate]['score'] += scoreDiff;
 					tagSet[tagCate]['count'] += 1;
 				}
 			}
 		}
-		for(var i in tagSet){
+		tagSet = removeRepelCates(tagSet);
+		for (var i in tagSet){
 			this.tagArray.push(tagSet[i]);
 		}
 		this.tagArray.sort(function(a,b){
+			return  b["score"] - a["score"];
+		});
+	},
+	initManual: function(keyword){
+		this.manualArray = [];
+		var manualSet = {};
+		if (!keyword) return;
+		var strSet = '套装·'+keyword;
+		var existScore = getSelectedSet();
+		for (var i in clothes){
+			var name = clothes[i].name;
+			var type = clothes[i].type.type;
+			var matchStr = [];
+			if (clothes[i].set == keyword) matchStr.push(strSet);
+			if (name.indexOf(keyword)>=0) matchStr.push(keyword);
+			if (matchStr.length ==0) continue;
+			
+			for (var j in matchStr){
+				if(manualSet[matchStr[j]] == null){
+					manualSet[matchStr[j]] = {};
+					manualSet[matchStr[j]]['name'] = matchStr[j];
+					manualSet[matchStr[j]]['clothes'] = {};
+					manualSet[matchStr[j]]['typeScore'] = {};
+					manualSet[matchStr[j]]['score'] = 0;
+					manualSet[matchStr[j]]['count'] = 0;
+					if (Object.keys(existScore).length) { //if any set selected, initialise typeScore
+						for (var t in existScore){
+							manualSet[matchStr[j]]['typeScore'][t] = existScore[t];
+						}
+					}
+				}
+				manualSet[matchStr[j]]['count'] += 1;
+				if (!matches(clothes[i])) continue;
+				clothes[i].calc(criteria);
+				if (clothes[i].isF) continue;
+				var sumScore = isAccSumScore(clothes[i]);
+			
+				if(manualSet[matchStr[j]]['clothes'][type] == null){
+					manualSet[matchStr[j]]['clothes'][type] = clothes[i];
+					manualSet[matchStr[j]]['typeScore'][type] = sumScore;
+					manualSet[matchStr[j]]['score'] += sumScore;
+				}else if (sumScore > manualSet[matchStr[j]]['typeScore'][type]){
+					var scoreDiff = sumScore - manualSet[matchStr[j]]['typeScore'][type];
+					manualSet[matchStr[j]]['clothes'][type] = clothes[i];
+					manualSet[matchStr[j]]['typeScore'][type] = sumScore;
+					manualSet[matchStr[j]]['score'] += scoreDiff;
+				}
+			}
+		}
+		if (manualSet[strSet]) delete manualSet[strSet]['count'];
+		
+		manualSet = removeRepelCates(manualSet);
+		for (var i in manualSet){
+			this.manualArray.push(manualSet[i]);
+		}
+		this.manualArray.sort(function(a,b){
 			return  b["score"] - a["score"];
 		});
 	}
@@ -182,50 +206,104 @@ var output = {
 	},
 	print: function(id, clothes){
 		this.empty(id);
-		for(var i  = 0; i < $('#opt_printAmt').val(); i++){
-			$div = $("<div></div>");
+		if ($('.suitlist_selected')[0]){
+			$(id).append(this.br);
+			$(id).append("打底套装："+$('.suitlist_selected')[0].id);
+		}
+		$(id).append(this.br);
+		$(id).append($('#opt_accAmt').prev("span").html()+$('#opt_accAmt').val());
+		$(id).append(this.br);
+		$(id).append($('#opt_limitRet').prev("span").html()+$('#opt_limitRet').val());
+		$(id).append(this.br);
+		$(id).append($('#opt_allowCates_all').prev("span").html()+filters.join('|'));
+		$(id).append(this.br);
+		$(id).append(this.br);
+		for (var i  = 0; i < $('#opt_printAmt').val() && i < Object.keys(clothes).length; i++){
+			if (id=='#suitList') $div = $('<div id="'+clothes[i].name+'"></div>');
+			else $div = $("<div></div>");
 			var $title = $("<div><b>"+clothes[i].name + "|" + clothes[i].score + (clothes[i].count?' ('+clothes[i].count+'件)':'') +"</b></div>");
 			$title.addClass('out_title');
-			$div.append(this.br);
 			$div.append($title);
 			$div.append(this.br);
-			for(var j in clothes[i].clothes){
-				var cl = clothes[i].clothes[j];
-				var $clothes = $("<div>"+cl.name + "|" + cl.type.type + "|" + isAccSumScore(cl)+"</div>");
+			//sort clothes keys
+			var keys = [];
+			for (var j in clothes[i].clothes) keys.push(j);
+			keys.sort(function(a,b){
+				if ($.inArray(a,category)>=0) return $.inArray(a,category) - $.inArray(b,category);
+			});
+			for (var j in keys){
+				var cl = clothes[i].clothes[keys[j]];
+				var $clothes = $('<div><span data-toggle="tooltip" data-placement="bottom" title="'+cl.source+'　'+cl.version+'">'+cl.name+'|'+cl.type.type+'|'+isAccSumScore(cl)+'</span></div>');
 				$clothes.addClass('out_clothes');
 				$div.append($clothes);
 			}
 			$(id).append($div);
+			$(id).append(this.br);
 		}
+		$('[data-toggle="tooltip"]').tooltip();
 	}
 }
 
-/*function unique3(toUnique) {
-	var res = [];
-	var json = {};
-	for (var i = 0; i < toUnique.length; i++) {
-		if (!json[toUnique[i]]) {
-			res.push(toUnique[i]);
-			json[toUnique[i]] = 1;
+function removeRepelCates(resultobj){
+	for (var str in resultobj){
+		for (var j in repelCates){
+			var sumFirst=0;
+			var sumOthers=0;
+			for (var k in repelCates[j]){
+				if (resultobj[str]['typeScore'][repelCates[j][k]]){
+					var score = resultobj[str]['typeScore'][repelCates[j][k]];
+					if (k==0) sumFirst += score;
+					else sumOthers += score;
+				}
+			}
+			if (sumFirst==0 || sumOthers==0) continue;
+			if (sumFirst < sumOthers) {
+				resultobj[str]['score'] -= resultobj[str]['typeScore'][repelCates[j][0]];
+				delete resultobj[str]['clothes'][repelCates[j][0]];
+				delete resultobj[str]['typeScore'][repelCates[j][0]];
+			}else for (k=1; k<repelCates[j].length; k++) {
+				resultobj[str]['score'] -= resultobj[str]['typeScore'][repelCates[j][k]];
+				delete resultobj[str]['clothes'][repelCates[j][k]];
+				delete resultobj[str]['typeScore'][repelCates[j][k]];
+			}
 		}
 	}
-	return res;
-}*/
+	return resultobj;
+}
+
+function getSelectedSet(){
+	var existScore = {};
+	if ($('.suitlist_selected')[0]){ //if any set selected
+		var setName = $('.suitlist_selected')[0].id; 
+		for (var i in lantu.suitArray){
+			if (setName == lantu.suitArray[i]['name']) {
+				for (var j in lantu.suitArray[i]['clothes']){
+					var cl = lantu.suitArray[i]['clothes'][j];
+					if (!matches(cl)) continue;
+					cl.calc(criteria);
+					if (cl.isF) continue;
+					existScore[cl.type.type] = isAccSumScore(cl);
+				}
+				break;
+			}
+		}
+	}
+	return existScore;
+}
 
 function showAllowCates(){
 	filters = [];
 	for (var c in category){
-		var type = category[c];
-		if (type.indexOf('饰品')==0) continue;
+		var type1 = category[c].split('·')[0];
+		var type = type1.indexOf('-')>=0 ? type1.split('-')[1] : type1;
+		if ($.inArray(type, filters) >= 0) continue;
 		$('#opt_allowCates').append('<label><input type="checkbox" checked />'+type+'</label>');
 		filters.push(type);
 	}
-	$('#opt_allowCates').append('<label><input type="checkbox" checked />饰品</label>');
-	filters.push('饰品');
 }
 
 function isAccSumScore(a){
-	if (a.type.mainType == "饰品") return Math.round(accSumScore(a,$('#opt_accDeter').val()));
+	if (a.type.mainType == "饰品") {return Math.round(accSumScore(a,$('#opt_accAmt').val()));}
 	else return a.sumScore;
 }
 
@@ -256,26 +334,50 @@ function onChangeCriteria() {
 }
 
 function matches(c) {
-	var type = c.type.mainType=="饰品" ? c.type.mainType : c.type.type;
+	var type1 = c.type.type.split('·')[0];
+	var type = type1.indexOf('-')>=0 ? type1.split('-')[1] : type1;
 	if ($.inArray(type, filters) >= 0) return true;
 	else return false;
 }
 
 function initEvent() {
+	$("form").submit(function(){
+		return false;
+	});
 	$(".filter-radio").change(function () {
 		onChangeCriteria();
 	});
-	$("#showsuit").click(function(){
+	$("#showSuit").click(function(){
 		lantu.initSuit();
-		output.print('#suitlist', lantu.suitArray);
+		if (lantu.suitArray.length>0) output.print('#suitList', lantu.suitArray);
+		//http://stackoverflow.com/questions/32195962/differentiate-the-clicks-between-parent-and-child-using-javascript-jquery
+		$("#suitList > div").click(function(){
+			if ($(this).hasClass("suitlist_selected")) $(this).removeClass();
+			else{
+				$("#suitList > div").removeClass();
+				$(this).addClass("suitlist_selected");
+			}
+		});
 	});
-	$("#showword").click(function(){
+	$("#showWord").click(function(){
 		lantu.initWord();
-		output.print('#wordlist', lantu.wordArray);
+		if (lantu.wordArray.length>0) output.print('#wordList', lantu.wordArray);
 	});
-	$("#showtag").click(function(){
+	$("#showTag").click(function(){
 		lantu.initTag();
-		output.print('#taglist', lantu.tagArray);
+		if (lantu.tagArray.length>0) output.print('#tagList', lantu.tagArray);
+	});
+	$("#showManual").click(function(){
+		lantu.initManual($('#manualKeyWords').val());
+		if (lantu.manualArray.length>0) output.print('#manualList', lantu.manualArray);
+	});
+	$("#opt_allowCates_all").click(function(){
+		$("#opt_allowCates").html('');
+		showAllowCates();
+	});
+	$("#opt_allowCates_none").click(function(){
+		$("#opt_allowCates input").attr('checked', false);
+		filters = [];
 	});
 	$("#opt_allowCates input").click(function(){
 		var label = $(this)[0].nextSibling.nodeValue;
