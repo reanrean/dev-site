@@ -11,8 +11,8 @@ var lantu = {
 			if (!matches(clothes[i])) continue;
 			clothes[i].calc(criteria);
 			if (clothes[i].isF) continue;
-			if(clothes[i].set != ""){
-				if(suitSet[clothes[i].set] == null){
+			if (clothes[i].set != ""){
+				if (suitSet[clothes[i].set] == null){
 					suitSet[clothes[i].set] = {};
 					suitSet[clothes[i].set]['name'] = clothes[i].set;
 					suitSet[clothes[i].set]['clothes'] = {};
@@ -60,7 +60,7 @@ var lantu = {
 					if (clothes[i].isF) continue;
 					var sumScore = isAccSumScore(clothes[i]);
 					
-					if(wordSet[str]['typeScore'][type] == null){
+					if (wordSet[str]['typeScore'][type] == null){
 						wordSet[str]['clothes'][type] = clothes[i];
 						wordSet[str]['typeScore'][type] = sumScore;
 						wordSet[str]['score'] += sumScore;
@@ -97,14 +97,14 @@ var lantu = {
 			var type = clothes[i].type.type;
 			var tags = clothes[i].tags;
 			for (var j in tags){
-				if (tags[j]=="") continue;
+				if (!tags[j]) continue;
 				if (tags[j].indexOf('+')>=0) continue;
 				var type1 = type.split('·')[0]; 
 				var type2 = type1.indexOf('-')>=0 ? type1.split('-')[1] : type1;
 				if (type2 == '袜套') type2 = '袜子';
 				tagCate = type2+' + '+tags[j];
 				var sumScore = isAccSumScore(clothes[i]);
-				if(tagSet[tagCate] == null){
+				if (tagSet[tagCate] == null){
 					tagSet[tagCate] = {};
 					tagSet[tagCate]['name'] = tagCate;
 					tagSet[tagCate]['clothes'] = {};
@@ -117,7 +117,7 @@ var lantu = {
 						}
 					}
 				}
-				if(tagSet[tagCate]['typeScore'][type] == null){
+				if (tagSet[tagCate]['typeScore'][type] == null){
 					tagSet[tagCate]['clothes'][type] = clothes[i];
 					tagSet[tagCate]['typeScore'][type] = sumScore;
 					tagSet[tagCate]['score'] += sumScore;
@@ -139,22 +139,27 @@ var lantu = {
 			return  b["score"] - a["score"];
 		});
 	},
-	initManual: function(keyword){
+	initManual: function(keywordstr){
 		this.manualArray = [];
 		var manualSet = {};
-		if (!keyword) return;
-		var strSet = '套装·'+keyword;
+		if (!keywordstr) return;
+		var keyword = keywordstr.split(',');
 		var existScore = getSelectedSet();
+		
 		for (var i in clothes){
 			var name = clothes[i].name;
 			var type = clothes[i].type.type;
 			var matchStr = [];
-			if (clothes[i].set == keyword) matchStr.push(strSet);
-			if (name.indexOf(keyword)>=0) matchStr.push(keyword);
+			for (var w in keyword){
+				if (!keyword[w]) continue;
+				var strSet = '套装·'+keyword[w];
+				if (clothes[i].set == keyword[w]) matchStr.push(strSet);
+				if (name.indexOf(keyword[w])>=0) matchStr.push(keyword[w]);
+			}
 			if (matchStr.length ==0) continue;
-			
+				
 			for (var j in matchStr){
-				if(manualSet[matchStr[j]] == null){
+				if (manualSet[matchStr[j]] == null){
 					manualSet[matchStr[j]] = {};
 					manualSet[matchStr[j]]['name'] = matchStr[j];
 					manualSet[matchStr[j]]['clothes'] = {};
@@ -173,7 +178,7 @@ var lantu = {
 				if (clothes[i].isF) continue;
 				var sumScore = isAccSumScore(clothes[i]);
 			
-				if(manualSet[matchStr[j]]['typeScore'][type] == null){
+				if (manualSet[matchStr[j]]['typeScore'][type] == null){
 					manualSet[matchStr[j]]['clothes'][type] = clothes[i];
 					manualSet[matchStr[j]]['typeScore'][type] = sumScore;
 					manualSet[matchStr[j]]['score'] += sumScore;
@@ -185,8 +190,7 @@ var lantu = {
 				}
 			}
 		}
-		if (manualSet[strSet]) delete manualSet[strSet]['count'];
-		
+		for (var i in manualSet) if (i.indexOf('套装·')>=0) delete manualSet[i]['count'];
 		manualSet = removeRepelCates(manualSet);
 		for (var i in manualSet){
 			this.manualArray.push(manualSet[i]);
