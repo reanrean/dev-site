@@ -258,13 +258,17 @@ function removeRepelCates(resultobj){
 			}
 			if (sumFirst==0 || sumOthers==0) continue;
 			if (sumFirst < sumOthers) {
-				resultobj[str]['score'] -= resultobj[str]['typeScore'][repelCates[j][0]];
-				delete resultobj[str]['clothes'][repelCates[j][0]];
-				delete resultobj[str]['typeScore'][repelCates[j][0]];
+				if (resultobj[str]['typeScore'][repelCates[j][0]]){
+					resultobj[str]['score'] -= resultobj[str]['typeScore'][repelCates[j][0]];
+					delete resultobj[str]['clothes'][repelCates[j][0]];
+					delete resultobj[str]['typeScore'][repelCates[j][0]];
+				}
 			}else for (k=1; k<repelCates[j].length; k++) {
-				resultobj[str]['score'] -= resultobj[str]['typeScore'][repelCates[j][k]];
-				delete resultobj[str]['clothes'][repelCates[j][k]];
-				delete resultobj[str]['typeScore'][repelCates[j][k]];
+				if (resultobj[str]['typeScore'][repelCates[j][k]]){
+					resultobj[str]['score'] -= resultobj[str]['typeScore'][repelCates[j][k]];
+					delete resultobj[str]['clothes'][repelCates[j][k]];
+					delete resultobj[str]['typeScore'][repelCates[j][k]];
+				}
 			}
 		}
 	}
