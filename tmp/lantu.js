@@ -39,7 +39,7 @@ var lantu = {
 	initManual: function(keywordstr){
 		this.manualArray = [];
 		var manualSet = {};
-		if (!keywordstr) return;
+		if (!keywordstr) return false;
 		var keyword = keywordstr.split(',');
 		var existScore = getSelectedSet();
 		for (var w in keyword){
@@ -241,10 +241,7 @@ function lantu_init(){
 
 function evalSets(resultObj,limitRet,existObj){
 	var accCount = $('#opt_accAmt').val();
-	if (!accCount) {
-		alert('Invalid Accessories Count!');
-		return;
-	}
+	if (!accCount) {alert('Invalid Accessories Count!'); return false;}
 	
 	for (var str in resultObj){
 		resultObj[str]['score'] = 0;
@@ -405,8 +402,15 @@ function listKeywords(arr){
 		header.append($('<td>'+arr[i]+'<a href="" onclick="addSubCart('+"'"+arr[i]+"'"+');return false;">[+]</a><br>'+sumSets[arr[i]].score+'</td>'));
 	out.append(header);
 	
-	var outCategory = clone(category);
-	outCategory.sort(function(a,b){return a.indexOf('饰品-')==0? 1 : 0;}); //push acc to last
+	var outCategory = function() {
+		var ret = [];
+		for (var c in category) if(category[c].indexOf('饰品-')!=0) ret.push(category[c]);
+		for (var c in category) if(category[c].indexOf('饰品-')==0) ret.push(category[c]);
+		return ret;
+	}();
+	/*clone(category);
+	outCategory.sort(function(a,b){return b.indexOf('饰品-')!=0? 1 : 0;}); //push acc to last*/
+	
 	for (var c in outCategory){
 		var type = outCategory[c];
 		var blankLine = true;
@@ -422,6 +426,11 @@ function listKeywords(arr){
 	}
 	out.addClass("solidTable");
 	$('#finalList').html(out);
+	$('#finalList').prepend($("<br/>"));
+	$('#finalList').prepend($('#opt_limitRet').prev("span").html()+$('#opt_limitRet').val());
+	$('#finalList').prepend($("<br/>"));
+	$('#finalList').prepend($('#opt_accAmt').prev("span").html()+$('#opt_accAmt').val());
+	$('#finalList').prepend($("<br/>"));
 }
 
 function sumKeywords(arr,accCount){
@@ -581,13 +590,13 @@ function getSubType(type){
 	return type1.indexOf('-')>=0 ? type1.split('-')[1] : type1;
 }
 
-function buttonCart(txt){
-	return '<button class="btn btn-xs btn-default">'+txt+'<a href="" onclick="delCart('+"'"+txt+"'"+');return false;">[×]</a></button>';
+function buttonCart(txt,xlink){
+	return '<button class="btn btn-xs btn-default">'+txt+(xlink?'<a href="" onclick="delCart('+"'"+txt+"'"+');return false;">[×]</a>':'')+'</button>';
 }
 
 function addCart(txt){
 	//check exist
-	if($.inArray(txt,cartKeyword)>=0) return;
+	if($.inArray(txt,cartKeyword)>=0) return false;
 	//check other sets
 	if (txt.indexOf('套装-')==0) for (var i in cartKeyword) if (cartKeyword[i].indexOf('套装-')==0) delCart(cartKeyword[i]);
 	//addCart
@@ -597,7 +606,7 @@ function addCart(txt){
 
 function addSubCart(txt){
 	//check exist
-	if($.inArray(txt,subCartKeyword)>=0) return;
+	if($.inArray(txt,subCartKeyword)>=0) return false;
 	//check other sets
 	if (txt.indexOf('套装-')==0) for (var i in subCartKeyword) if (subCartKeyword[i].indexOf('套装-')==0) delCart(subCartKeyword[i]);
 	//addCart
@@ -614,7 +623,7 @@ function delCart(txt){
 
 function refreshCart(){
 	$("#cartKeyword").html('');
-	for (var i in cartKeyword) $("#cartKeyword").append(buttonCart(cartKeyword[i]));
+	for (var i in cartKeyword) $("#cartKeyword").append(buttonCart(cartKeyword[i],true));
 }
 
 function checkPush(item, arr){
@@ -732,9 +741,24 @@ function initEvent() {
 		listKeywords(cartKeyword);
 	});
 	$("#cart_reSearch").click(function(){
-		$("#manualList").html('');
+		if(!cartKeyword.length) {alert('No keywords in cart!'); return false;}
+		var cartObj = sumKeywords(cartKeyword);
+		var reSearch = [];
+		var reSearch1 = evalSets(gWordSet,$('#opt_limitRet').val(),cartObj['result']);
+		var reSearch2 = evalSets(clone(gTagSet),$('#opt_limitRet').val(),cartObj['result']);
+		for (var i in reSearch1) reSearch.push(reSearch1[i]);
+		for (var i in reSearch2) reSearch.push(reSearch2[i]);
+		reSearch.sort(function(a,b){
+			return  b["score"] - a["score"];
+		});
+		if (reSearch.length>0) {
+			$('.suitlist_selected').removeClass();
+			output.print('#manualList', reSearch);
+		}
+		$("#manualList").prepend('已选关键字：'+cartKeyword.join(' / '));
 	});
 	$("#subCart_calc").click(function(){
+		$("#finalList_1").html('');
 		var aaa = sumKeywords(subCartKeyword);
 		$("#finalList_1").html(aaa.score);
 	});
