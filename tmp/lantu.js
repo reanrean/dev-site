@@ -68,8 +68,11 @@ var output = {
 			$(id).append(this.br);
 			$(id).append("打底套装："+$('.suitlist_selected')[0].id);
 		}
-		if (id!='#finalList_1'){
+		$(id).append(this.br);
+		if (id=='#finalList_1'){
+			$(id).append('子策略详细结果：');
 			$(id).append(this.br);
+		}else{
 			$(id).append($('#opt_accAmt').prev("span").html()+$('#opt_accAmt').val());
 			$(id).append(this.br);
 			$(id).append($('#opt_limitRet').prev("span").html()+$('#opt_limitRet').val());
@@ -367,7 +370,7 @@ function listKeywords(arr){
 	for (var c in outCategory) checkPush(getSubType(outCategory[c]), filters);
 	
 	var accCount = $('#opt_accAmt').val();
-	arr.sort(function(a,b){return b.indexOf('套装-')==0? 1 : 0;}); //push sets to first
+	arr.sort(function(a,b){return b.indexOf('套装-') - a.indexOf('套装-');}); //push sets to first
 	var sumSets = evalSets(keywordToObj(arr),$('#opt_limitRet').val());
 	var out = $('<table></table>');
 	var header = $('<tr></tr>').append($('<td></td>'));
@@ -402,7 +405,7 @@ function listKeywords(arr){
 function sumKeywords(arr,accCount){
 	//if accCount is not given, need to be calculated here
 	var sumSets = keywordToObj(arr);
-	arr.sort(function(a,b){return b.indexOf('套装-')==0? 1 : 0;}); //push sets to first
+	arr.sort(function(a,b){return b.indexOf('套装-') - a.indexOf('套装-');}); //push sets to first
 	if (!accCount){
 		var accList = [];
 		for (var str in sumSets) if (sumSets[str]['acc']) for (var type in sumSets[str]['acc']) checkPush(type, accList);
@@ -454,7 +457,7 @@ function sumEvalSets(existObj, newObj, accCount, limitRet){
 	for (var type in newObj['typeScore']){
 		if (existObj['result']&&existObj['result'][type]) newObj['typeScore'][type] = isAccSumScore(existObj['result'][type],accCount);
 		if (!newObj['result'][type]) {
-			newObj['result'][type] = existObj['result'][type];
+			if(existObj['result']&&existObj['result'][type]) newObj['result'][type] = existObj['result'][type];
 			continue;
 		}
 		var score = isAccSumScore(newObj['result'][type],accCount);
@@ -729,7 +732,7 @@ function initEvent() {
 			$('.suitlist_selected').removeClass();
 			output.print('#manualList', reSearch);
 		}
-		$("#manualList").prepend('已选关键字：'+cartKeyword.join(' / '));
+		$("#manualList").prepend('<br>已选关键字：'+cartKeyword.join(' / '));
 	});
 	$("#subCart_calc").click(function(){
 		$("#finalList_1").html('');
@@ -737,8 +740,35 @@ function initEvent() {
 		var cartObjSum = sumKeywords(subCartKeyword);
 		var accCount = 0;
 		if(cartObjSum['result']) for (var i in cartObjSum['result'])
-			if (i.indexOf('')==0) accCount++;
+			if (i.indexOf('饰品')==0) accCount++;
 		var cartObjKW = evalSets(keywordToObj(subCartKeyword), $('#opt_limitRet').val(), {}, accCount);
+		//test to reduce an acc, see score increase or not
+		/*var cartObjSum_test = clone(cartObjSum);
+		var accCount_test = accCount;
+		var reduce_result = [];
+		do {
+			accCount_test --;
+			var beforeScore = afterScore;
+			
+			var typeScoreArr = [];
+			for (var type in cartObjSum_test['result']){
+				typeScoreArr.push([isAccSumScore(cartObjSum_test['result'][type], accCount), type]);
+			}
+			typeScoreArr.sort(function(a,b){return  a[0] - b[0];});
+			reduce_result.push(typeScoreArr[0][1]+'|'+cartObjSum_test['result'][typeScoreArr[0][1]].name);
+			delete cartObjSum_test['result'][typeScoreArr[0][1]];
+			
+			var afterScore = 0;
+			for (var type in cartObjSum_test['result']) afterScore += isAccSumScore(cartObjSum_test['result'][type],accCount_test);
+			cartObjSum_test['score'] = afterScore;
+		}while (beforeScore<afterScore)
+		
+		if (afterScore > cartObjSum['score']) {
+			cartObjSum = cartObjSum_test;
+			$("#subCartScore").html(cartObjSum.score+'分');
+			reduce_result.slice(0, -1);//rm last item
+			alert('去掉以下衰减饰品：'+reduce_result.join(', '));
+		}*/
 		
 		var cartKW = {};
 		for (var type in cartObjSum['result']){
@@ -754,7 +784,7 @@ function initEvent() {
 		}
 		var cartKWArr = [];
 		for (var i in cartKW) cartKWArr.push(cartKW[i]);
-		cartKWArr.sort(function(a,b){return b["name"].indexOf('套装-')==0 ? 1 : b["score"] - a["score"];});
+		cartKWArr.sort(function(a,b){return a["name"].indexOf('套装-')==b["name"].indexOf('套装-') ? b["score"] - a["score"] : b["name"].indexOf('套装-') - a["name"].indexOf('套装-');});
 		if (cartKWArr.length>0) {
 			$('.suitlist_selected').removeClass();
 			output.print('#finalList_1', cartKWArr);
