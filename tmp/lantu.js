@@ -768,7 +768,6 @@ function initEvent() {
 		$("#finalList_1").html('');
 		if(!subCartKeyword.length) {alert('No keywords in cart!'); return false;}
 		var cartObjSum = refineSets(sumKeywords(subCartKeyword));
-		console.log(cartObjSum);
 		var accCount = 0;
 		if(cartObjSum['result']) for (var i in cartObjSum['result'])
 			if (i.indexOf('饰品')==0) accCount++;
