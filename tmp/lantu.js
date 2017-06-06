@@ -68,13 +68,15 @@ var output = {
 			$(id).append(this.br);
 			$(id).append("打底套装："+$('.suitlist_selected')[0].id);
 		}
-		$(id).append(this.br);
-		$(id).append($('#opt_accAmt').prev("span").html()+$('#opt_accAmt').val());
-		$(id).append(this.br);
-		$(id).append($('#opt_limitRet').prev("span").html()+$('#opt_limitRet').val());
-		$(id).append(this.br);
-		$(id).append($('#opt_allowCates_all').prev("span").html()+filters.join('|'));
-		$(id).append(this.br);
+		if (id!='#finalList_1'){
+			$(id).append(this.br);
+			$(id).append($('#opt_accAmt').prev("span").html()+$('#opt_accAmt').val());
+			$(id).append(this.br);
+			$(id).append($('#opt_limitRet').prev("span").html()+$('#opt_limitRet').val());
+			$(id).append(this.br);
+			$(id).append($('#opt_allowCates_all').prev("span").html()+filters.join('|'));
+			$(id).append(this.br);
+		}
 		$(id).append(this.br);
 		for (var i  = 0; i < $('#opt_printAmt').val() && i < Object.keys(clothes).length; i++){
 			if (id=='#suitList') $div = $('<div id="'+clothes[i].name+'"></div>');
@@ -321,37 +323,6 @@ function evalSets(resultObj,limitRet,existObj,accCount){
 	}
 	return resultObj;
 }
-/*
-function removeRepelCates(resultobj){
-	for (var str in resultobj){
-		for (var j in repelCates){
-			var sumFirst=0;
-			var sumOthers=0;
-			for (var k in repelCates[j]){
-				if (resultobj[str]['typeScore'][repelCates[j][k]]){
-					var score = resultobj[str]['typeScore'][repelCates[j][k]];
-					if (k==0) sumFirst += score;
-					else sumOthers += score;
-				}
-			}
-			if (sumFirst==0 || sumOthers==0) continue;
-			if (sumFirst < sumOthers) {
-				if (resultobj[str]['typeScore'][repelCates[j][0]]){
-					resultobj[str]['score'] -= resultobj[str]['typeScore'][repelCates[j][0]];
-					delete resultobj[str]['clothes'][repelCates[j][0]];
-					delete resultobj[str]['typeScore'][repelCates[j][0]];
-				}
-			}else for (k=1; k<repelCates[j].length; k++) {
-				if (resultobj[str]['typeScore'][repelCates[j][k]]){
-					resultobj[str]['score'] -= resultobj[str]['typeScore'][repelCates[j][k]];
-					delete resultobj[str]['clothes'][repelCates[j][k]];
-					delete resultobj[str]['typeScore'][repelCates[j][k]];
-				}
-			}
-		}
-	}
-	return resultobj;
-}*/
 
 function getSelectedSet(){
 	var existScore = {};
@@ -386,11 +357,15 @@ function keywordToObj(arr){
 		else {//word
 			if (gWordSet[str]) sumSets[str] = gWordSet[str];
 		}
+		if (!sumSets[str]) sumSets[str]={};
 	}
 	return sumSets;
 }
 
 function listKeywords(arr){
+	var filters_tmp = clone(filters); //disable the filter temporarily
+	for (var c in outCategory) checkPush(getSubType(outCategory[c]), filters);
+	
 	var accCount = $('#opt_accAmt').val();
 	arr.sort(function(a,b){return b.indexOf('套装-')==0? 1 : 0;}); //push sets to first
 	var sumSets = evalSets(keywordToObj(arr),$('#opt_limitRet').val());
@@ -399,9 +374,6 @@ function listKeywords(arr){
 	for (var i in arr) 
 		header.append($('<td>'+arr[i]+'<a href="" onclick="addSubCart('+"'"+arr[i]+"'"+');return false;">[+]</a><br>'+sumSets[arr[i]].score+'</td>'));
 	out.append(header);
-	
-	/*clone(category);
-	outCategory.sort(function(a,b){return b.indexOf('饰品-')!=0? 1 : 0;}); //push acc to last*/
 	
 	for (var c in outCategory){
 		var type = outCategory[c];
@@ -423,6 +395,8 @@ function listKeywords(arr){
 	$('#finalList').prepend($("<br/>"));
 	$('#finalList').prepend($('#opt_accAmt').prev("span").html()+$('#opt_accAmt').val());
 	$('#finalList').prepend($("<br/>"));
+	
+	filters = clone(filters_tmp); //enable the filter back
 }
 
 function sumKeywords(arr,accCount){
@@ -539,11 +513,6 @@ function isAcc_c(type){
 function isAccSumScore(c,num){
 	return c.isF ? 0 : (isAcc(c) ? Math.round(accSumScore(c,num?num:accCateNum)) : c.sumScore);
 }
-/*
-function isAccSumScore(a){
-	if (a.type.mainType == "饰品") return Math.round(accSumScore(a,$('#opt_accAmt').val()));
-	else return a.sumScore;
-}*/
 
 function byAccSumScore(a, b) {
 	return isAccSumScore(a) - isAccSumScore(b) == 0 ? a.id - b.id : isAccSumScore(b) - isAccSumScore(a);
@@ -583,16 +552,11 @@ function getSubType(type){
 }
 
 function buttonCart(txt,sub){
-	return '<button class="btn btn-xs btn-default">'+txt+'<a href="" onclick="del'+(sub?'Sub':'')+'Cart('+"'"+txt+"'"+');return false;">[×]</a>'+'</button>';
+	return '<button class="btn btn-xs btn-default">'+(sub?'':'<a href="" onclick="addSubCart('+"'"+txt+"'"+');return false;">[+]</a>')+txt+'<a href="" onclick="del'+(sub?'Sub':'')+'Cart('+"'"+txt+"'"+');return false;">[&ndash;]</a>'+'</button>';
 }
 
 function addCart(txt){
-	//check exist
-	if($.inArray(txt,cartKeyword)>=0) return false;
-	//check other sets
-	if (txt.indexOf('套装-')==0) for (var i in cartKeyword) if (cartKeyword[i].indexOf('套装-')==0) delCart(cartKeyword[i]);
-	//addCart
-	cartKeyword.push(txt);
+	checkPush(txt, cartKeyword);
 	refreshCart();
 }
 
@@ -600,11 +564,10 @@ function addSubCart(txt){
 	//check exist
 	if($.inArray(txt,subCartKeyword)>=0) return false;
 	//check other sets
-	if (txt.indexOf('套装-')==0) for (var i in subCartKeyword) if (subCartKeyword[i].indexOf('套装-')==0) delCart(subCartKeyword[i]);
+	if (txt.indexOf('套装-')==0) for (var i in subCartKeyword) if (subCartKeyword[i].indexOf('套装-')==0) delSubCart(subCartKeyword[i]);
 	//addCart
 	subCartKeyword.push(txt);
-	$("#subCart").html('');
-	for (var i in subCartKeyword) $("#subCart").append(buttonCart(subCartKeyword[i]),true);
+	refreshSubCart();
 }
 
 function delCart(txt){
@@ -614,14 +577,24 @@ function delCart(txt){
 }
 
 function delSubCart(txt){
-	var index = $.inArray(txt,cartKeyword);
-	if (index > -1) cartKeyword.splice(index, 1);
-	refreshCart();
+	var index = $.inArray(txt,subCartKeyword);
+	if (index > -1) subCartKeyword.splice(index, 1);
+	refreshSubCart();
 }
 
 function refreshCart(){
 	$("#cartKeyword").html('');
 	for (var i in cartKeyword) $("#cartKeyword").append(buttonCart(cartKeyword[i],false));
+}
+
+function refreshSubCart(){
+	$("#subCart").html('');
+	$("#subCartScore").html('');
+	for (var i in subCartKeyword) $("#subCart").append(buttonCart(subCartKeyword[i],true));
+	if(subCartKeyword.length) {
+		var cartObjSum = sumKeywords(subCartKeyword);
+		$("#subCartScore").html(cartObjSum.score+'分');
+	}
 }
 
 function checkPush(item, arr){
@@ -667,14 +640,11 @@ function initEvent() {
 	});
 	$("#opt_allowCates_all").click(function(){
 		$("#opt_allowCates input").prop('checked', true);
-		for (var c in outCategory)
-			checkPush(getSubType(outCategory[c]), filters);
-		console.log(filters);
+		for (var c in outCategory) checkPush(getSubType(outCategory[c]), filters);
 	});
 	$("#opt_allowCates_none").click(function(){
 		$("#opt_allowCates input").prop('checked', false);
 		filters = [];
-		console.log(filters);
 	});
 	$("#opt_allowCates input").click(function(){
 		var label = $(this)[0].nextSibling.nodeValue;
@@ -683,27 +653,26 @@ function initEvent() {
 			var index = $.inArray(label,filters);
 			if (index > -1) filters.splice(index, 1);
 		}
-		console.log(filters);
 	});
 	$("#cart_val").click(function(){
-		var cates = ['饰品']; var missingCates = '';
+		var cates = []; var missingCates = '';
 		for (var i in cartKeyword){
 			if (cartKeyword[i].indexOf('套装-')==0&&gSuitSet[cartKeyword[i].replace('套装-','')]) {
 				for (var c in gSuitSet[cartKeyword[i].replace('套装-','')]['clothes']){
 					var cl = gSuitSet[cartKeyword[i].replace('套装-','')]['clothes'][c];
-					checkPush(cl.type.mainType, cates);
+					checkPush(cl.type.type, cates);
 				}
 			}
 			if (gWordSet[cartKeyword[i]]) {
 				for (var c in gWordSet[cartKeyword[i]]['clothes']){
 					var cl = gWordSet[cartKeyword[i]]['clothes'][c];
-					checkPush(cl.type.mainType, cates);
+					checkPush(cl.type.type, cates);
 				}
 			}
 			if (gTagSet[cartKeyword[i]]) {
 				for (var c in gTagSet[cartKeyword[i]]['clothes']){
 					var cl = gTagSet[cartKeyword[i]]['clothes'][c];
-					checkPush(cl.type.mainType, cates);
+					checkPush(cl.type.type, cates);
 				}
 			}
 		}
@@ -721,24 +690,29 @@ function initEvent() {
 				}
 			}
 		}
-		for (var i in CATEGORY_HIERARCHY){
-			if ($.inArray(i, cates)<0) missingCates += ' '+i;
+		var mainCates = clone(outCategory);
+		for (var i = 0; i<mainCates.length; i++){
+			if (mainCates[i].indexOf('饰品')==0) mainCates.splice(i, 9999);
+		}
+		for (var i in mainCates){
+			if ($.inArray(mainCates[i], cates)<0) missingCates += ' '+mainCates[i];
 		}
 		alert('尚缺大件:'+missingCates);
 	});
 	$("#cart_add").click(function(){
 		var txt = $("#cartKeyword_add").val();
-		addCart(txt);
+		if (txt) addCart(txt);
 		$("#cartKeyword_add").val('');
 	});
 	$("#cart_clear").click(function(){
 		cartKeyword = [];
-		$("#cartKeyword").html('');
+		refreshCart();
 	});
 	$("#finalList_clear").click(function(){
 		$("div[id*=List]").html('');
 	});
 	$("#cart_calc").click(function(){
+		if(!cartKeyword.length) {alert('No keywords in cart!'); return false;}
 		$("div[id*=List]").html('');
 		listKeywords(cartKeyword);
 	});
@@ -761,19 +735,34 @@ function initEvent() {
 		$("#finalList_1").html('');
 		if(!subCartKeyword.length) {alert('No keywords in cart!'); return false;}
 		var cartObjSum = sumKeywords(subCartKeyword);
-		console.log(Object.keys(cartObjSum['acc']).length);//use result, not acc
-		console.log(cartObjSum);
-		var cartObjKW = evalSets(keywordToObj(subCartKeyword), $('#opt_limitRet').val(), {}, Object.keys(cartObjSum['acc']).length);
-		for (var c in outCategory){
-			if (cartObjSum['result'][outCategory[c]]) {
-				
+		var accCount = 0;
+		if(cartObjSum['result']) for (var i in cartObjSum['result'])
+			if (i.indexOf('')==0) accCount++;
+		var cartObjKW = evalSets(keywordToObj(subCartKeyword), $('#opt_limitRet').val(), {}, accCount);
+		
+		var cartKW = {};
+		for (var type in cartObjSum['result']){
+			for (var str in cartObjKW){
+				if (cartObjKW[str]['result'][type]&&cartObjSum['result'][type].longid==cartObjKW[str]['result'][type].longid) {
+					if (!cartKW[str]) {cartKW[str] = {}; cartKW[str]['name'] = str;}
+					if (!cartKW[str]['result']) cartKW[str]['result'] = {};
+					if (!cartKW[str]['score']) cartKW[str]['score'] = 0;
+					cartKW[str]['result'][type] = cartObjKW[str]['result'][type];
+					cartKW[str]['score'] += isAccSumScore(cartObjKW[str]['result'][type], accCount);
+				}
 			}
 		}
-		$("#finalList_1").html(cartObjSum.score);
+		var cartKWArr = [];
+		for (var i in cartKW) cartKWArr.push(cartKW[i]);
+		cartKWArr.sort(function(a,b){return b["name"].indexOf('套装-')==0 ? 1 : b["score"] - a["score"];});
+		if (cartKWArr.length>0) {
+			$('.suitlist_selected').removeClass();
+			output.print('#finalList_1', cartKWArr);
+		}
 	});
 	$("#subCart_clear").click(function(){
 		subCartKeyword = [];
-		$("#subCart").html('');
+		refreshSubCart();
 	});
 }
 
