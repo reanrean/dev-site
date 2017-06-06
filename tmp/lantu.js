@@ -1,3 +1,10 @@
+var cartKeyword = [];
+var subCartKeyword = [];
+var allScores = {};
+var gSuitSet = {};
+var gWordSet = {};
+var gTagSet = {};
+
 var lantu = {
 	wordArray: [],
 	suitArray: [],
@@ -5,23 +12,7 @@ var lantu = {
 	manualArray: [],
 	initSuit: function(){
 		this.suitArray = [];
-		var suitSet = {};
-		for (var i in clothes) {
-			var type = clothes[i].type.type;
-			if (!matches(clothes[i])) continue;
-			clothes[i].calc(criteria);
-			if (clothes[i].isF) continue;
-			if (clothes[i].set != ""){
-				if (suitSet[clothes[i].set] == null){
-					suitSet[clothes[i].set] = {};
-					suitSet[clothes[i].set]['name'] = clothes[i].set;
-					suitSet[clothes[i].set]['clothes'] = {};
-					suitSet[clothes[i].set]['score'] = 0;
-				}
-				suitSet[clothes[i].set]['clothes'][type] = clothes[i];
-				suitSet[clothes[i].set]['score'] += isAccSumScore(clothes[i]);
-			}
-		}
+		var suitSet = evalSets(gSuitSet);
 		for (var i in suitSet) this.suitArray.push(suitSet[i]);
 		this.suitArray.sort(function(a,b){
 			return  b["score"] - a["score"];
@@ -29,57 +20,8 @@ var lantu = {
 	},
 	initWord: function(){
 		this.wordArray = [];
-		var wordSet = {};
 		var existScore = getSelectedSet();
-		for (var i in clothes){
-			var name = clothes[i].name;
-			var type = clothes[i].type.type;
-			var matchStr = [];
-			if (matches(clothes[i])) clothes[i].calc(criteria);
-			for (j=0; j<name.length; j++){ //get name string
-				for (k=1; k<=2; k++){
-					if (j > name.length-k) continue;
-					var str = name.substr(j, k);
-					if ($.inArray(str,matchStr)<0) matchStr.push(str);
-					else continue;
-					if (wordSet[str] == null){
-						wordSet[str] = {};
-						wordSet[str]['name'] = str;
-						wordSet[str]['clothes'] = {};
-						wordSet[str]['typeScore'] = {};
-						wordSet[str]['score'] = 0;
-						wordSet[str]['count'] = 0;
-						if (Object.keys(existScore).length) { //if any set selected, initialise typeScore
-							for (var t in existScore){
-								wordSet[str]['typeScore'][t] = existScore[t];
-							}
-						}
-					}
-					wordSet[str]['count'] += 1;
-					
-					if (!matches(clothes[i])) continue;
-					if (clothes[i].isF) continue;
-					var sumScore = isAccSumScore(clothes[i]);
-					
-					if (wordSet[str]['typeScore'][type] == null){
-						wordSet[str]['clothes'][type] = clothes[i];
-						wordSet[str]['typeScore'][type] = sumScore;
-						wordSet[str]['score'] += sumScore;
-					}else if (sumScore > wordSet[str]['typeScore'][type]){
-						var scoreDiff = sumScore - wordSet[str]['typeScore'][type];
-						wordSet[str]['clothes'][type] = clothes[i];
-						wordSet[str]['typeScore'][type] = sumScore;
-						wordSet[str]['score'] += scoreDiff;
-					}
-				}
-			}
-		}
-		for (var i in wordSet){//remove keywords with too many returns
-			if (i.indexOf("·")>=0 || wordSet[i]['count'] > $('#opt_limitRet').val())
-				delete wordSet[i];
-		}
-		
-		wordSet = removeRepelCates(wordSet);
+		var wordSet = evalSets(gWordSet,$('#opt_limitRet').val(),existScore);
 		for (var i in wordSet) this.wordArray.push(wordSet[i]);
 		this.wordArray.sort(function(a,b){
 			return  b["score"] - a["score"];
@@ -87,49 +29,8 @@ var lantu = {
 	},
 	initTag: function(){
 		this.tagArray = [];
-		var tagSet = {};
 		var existScore = getSelectedSet();
-		for (var i in clothes){
-			if (!matches(clothes[i])) continue;
-			clothes[i].calc(criteria);
-			if (clothes[i].isF) continue;
-			var type = clothes[i].type.type;
-			var tags = clothes[i].tags;
-			for (var j in tags){
-				if (!tags[j]) continue;
-				if (tags[j].indexOf('+')>=0) continue;
-				var subtype = getSubType(type);
-				if (subtype == '袜套') subtype = '袜子';
-				tagCate = [subtype,tags[j]].join(' + ');
-				var sumScore = isAccSumScore(clothes[i]);
-				if (tagSet[tagCate] == null){
-					tagSet[tagCate] = {};
-					tagSet[tagCate]['name'] = tagCate;
-					tagSet[tagCate]['clothes'] = {};
-					tagSet[tagCate]['typeScore'] = {};
-					tagSet[tagCate]['score'] = 0;
-					tagSet[tagCate]['count'] = 0;
-					if (Object.keys(existScore).length) { //if any set selected, initialise typeScore
-						for (var t in existScore){
-							tagSet[tagCate]['typeScore'][t] = existScore[t];
-						}
-					}
-				}
-				if (tagSet[tagCate]['typeScore'][type] == null){
-					tagSet[tagCate]['clothes'][type] = clothes[i];
-					tagSet[tagCate]['typeScore'][type] = sumScore;
-					tagSet[tagCate]['score'] += sumScore;
-					tagSet[tagCate]['count'] += 1;
-				}else if (sumScore > tagSet[tagCate]['typeScore'][type]){
-					var scoreDiff = sumScore - tagSet[tagCate]['typeScore'][type];
-					tagSet[tagCate]['clothes'][type] = clothes[i];
-					tagSet[tagCate]['typeScore'][type] = sumScore;
-					tagSet[tagCate]['score'] += scoreDiff;
-					tagSet[tagCate]['count'] += 1;
-				}
-			}
-		}
-		tagSet = removeRepelCates(tagSet);
+		var tagSet = evalSets(clone(gTagSet),$('#opt_limitRet').val(),existScore);
 		for (var i in tagSet) this.tagArray.push(tagSet[i]);
 		this.tagArray.sort(function(a,b){
 			return  b["score"] - a["score"];
@@ -141,58 +42,13 @@ var lantu = {
 		if (!keywordstr) return;
 		var keyword = keywordstr.split(',');
 		var existScore = getSelectedSet();
-		
-		for (var i in clothes){
-			var name = clothes[i].name;
-			var type = clothes[i].type.type;
-			var matchStr = [];
-			for (var w in keyword){
-				if (!keyword[w]) continue;
-				var strSet = '套装·'+keyword[w];
-				if (clothes[i].set == keyword[w]) matchStr.push(strSet);
-				if (name.indexOf(keyword[w])>=0) matchStr.push(keyword[w]);
-				if (keyword[w].indexOf('+')>=0) {
-					var tmp = keyword[w].replace(/\s+/g, '').split('+');
-					if (tmp[0]==getSubType(type) && tmp[1] && $.inArray(tmp[1],clothes[i].tags)>=0)
-						matchStr.push([tmp[0],tmp[1]].join(' + '));//remove space
-				}
-			}
-			if (matchStr.length ==0) continue;
-				
-			for (var j in matchStr){
-				if (manualSet[matchStr[j]] == null){
-					manualSet[matchStr[j]] = {};
-					manualSet[matchStr[j]]['name'] = matchStr[j];
-					manualSet[matchStr[j]]['clothes'] = {};
-					manualSet[matchStr[j]]['typeScore'] = {};
-					manualSet[matchStr[j]]['score'] = 0;
-					manualSet[matchStr[j]]['count'] = 0;
-					if (Object.keys(existScore).length) { //if any set selected, initialise typeScore
-						for (var t in existScore){
-							manualSet[matchStr[j]]['typeScore'][t] = existScore[t];
-						}
-					}
-				}
-				manualSet[matchStr[j]]['count'] += 1;
-				if (!matches(clothes[i])) continue;
-				clothes[i].calc(criteria);
-				if (clothes[i].isF) continue;
-				var sumScore = isAccSumScore(clothes[i]);
-			
-				if (manualSet[matchStr[j]]['typeScore'][type] == null){
-					manualSet[matchStr[j]]['clothes'][type] = clothes[i];
-					manualSet[matchStr[j]]['typeScore'][type] = sumScore;
-					manualSet[matchStr[j]]['score'] += sumScore;
-				}else if (sumScore > manualSet[matchStr[j]]['typeScore'][type]){
-					var scoreDiff = sumScore - manualSet[matchStr[j]]['typeScore'][type];
-					manualSet[matchStr[j]]['clothes'][type] = clothes[i];
-					manualSet[matchStr[j]]['typeScore'][type] = sumScore;
-					manualSet[matchStr[j]]['score'] += scoreDiff;
-				}
-			}
+		for (var w in keyword){
+			if(gSuitSet[keyword[w]]) manualSet['套装-'+keyword[w]] = gSuitSet[keyword[w]];
+			if(gWordSet[keyword[w]]) manualSet[keyword[w]] = gWordSet[keyword[w]];
+			if(gTagSet[keyword[w]]) manualSet[keyword[w]] = gTagSet[keyword[w]];
 		}
-		for (var i in manualSet) if (i.indexOf('套装·')>=0) delete manualSet[i]['count'];
-		manualSet = removeRepelCates(manualSet);
+		var manualSet = evalSets(clone(manualSet),$('#opt_limitRet').val(),existScore);
+		for (var i in manualSet) if (i.indexOf('套装-')>=0) delete manualSet[i]['count'];
 		for (var i in manualSet) this.manualArray.push(manualSet[i]);
 		this.manualArray.sort(function(a,b){
 			return  b["score"] - a["score"];
@@ -224,18 +80,19 @@ var output = {
 		for (var i  = 0; i < $('#opt_printAmt').val() && i < Object.keys(clothes).length; i++){
 			if (id=='#suitList') $div = $('<div id="'+clothes[i].name+'"></div>');
 			else $div = $("<div></div>");
-			var $title = $("<div><b>"+clothes[i].name + "|" + clothes[i].score + (clothes[i].count?' ('+clothes[i].count+'件)':'') +"</b></div>");
+			var $title = $("<div><b>"+clothes[i].name + "|" + clothes[i].score + (clothes[i].count?' ('+clothes[i].count+'件)':'') +'</b>&nbsp;<a href="" onclick="addCart('+"'"+clothes[i].name+"'"+');return false;">[+]</a></div>');
 			$title.addClass('out_title');
 			$div.append($title);
 			$div.append(this.br);
 			//sort clothes keys
 			var keys = [];
-			for (var j in clothes[i].clothes) keys.push(j);
+			for (var j in clothes[i].result) keys.push(j);
 			keys.sort(function(a,b){
 				if ($.inArray(a,category)>=0) return $.inArray(a,category) - $.inArray(b,category);
 			});
 			for (var j in keys){
-				var cl = clothes[i].clothes[keys[j]];
+				var cl = clothes[i].result[keys[j]];
+				if (!matches(cl)) continue;
 				var $clothes = $('<div><span data-toggle="tooltip" data-placement="bottom" title="'+cl.source+'　'+cl.version+'">'+cl.name+'|'+cl.type.type+'|'+isAccSumScore(cl)+'</span></div>');
 				$clothes.addClass('out_clothes');
 				$div.append($clothes);
@@ -247,6 +104,228 @@ var output = {
 	}
 }
 
+function lantu_init(){
+	allScores = {};
+	for (var i in clothes) {//calc each clothes, put to allScores[type], and sort
+		clothes[i].calc(criteria);
+		if (clothes[i].isF) continue;
+		if (!allScores[clothes[i].type.type]) allScores[clothes[i].type.type] = [];
+		allScores[clothes[i].type.type].push(clothes[i]);
+	}
+	for (var i in allScores) allScores[i].sort(function(a,b){return isAccSumScore(b) - isAccSumScore(a);});
+	
+	//gen all suitSet
+	gSuitSet = {};
+	for (var i in clothes) {
+		if (!clothes[i].set) continue;
+		var setName = clothes[i].set;
+		var type = clothes[i].type.type;
+		
+		if (gSuitSet[setName] == null){
+			gSuitSet[setName] = {};
+			gSuitSet[setName]['name'] = '套装-'+setName;
+			gSuitSet[setName]['clothes'] = {};
+			gSuitSet[setName]['acc'] = {};
+		}
+		if (isAcc(clothes[i])) {
+			if (!gSuitSet[setName]['acc'][type]) gSuitSet[setName]['acc'][type] = {};
+			gSuitSet[setName]['acc'][type]['0'] = clothes[i];
+		}else gSuitSet[setName]['clothes'][type] = clothes[i];
+	}
+	
+	//gen all wordSet
+	gWordSet = {};
+	for (var i in clothes){
+		var name = clothes[i].name;
+		var type = clothes[i].type.type;
+		var matchStr = [];
+		for (j=0; j<name.length; j++){ //get name string
+			for (k=1; k<=2; k++){
+				if (j > name.length-k) continue;
+				var str = name.substr(j, k);
+				if ($.inArray(str,matchStr)<0) matchStr.push(str);
+				else continue;
+				if (gWordSet[str] == null){
+					gWordSet[str] = {};
+					gWordSet[str]['name'] = str;
+					gWordSet[str]['clothes'] = {};
+					gWordSet[str]['acc'] = {};
+					gWordSet[str]['rawScore'] = {};
+					gWordSet[str]['rawSumScore'] = 0;
+					gWordSet[str]['count'] = 0;
+				}
+				gWordSet[str]['count'] += 1;
+				
+				if (clothes[i].isF) continue;
+				var sumScore = Math.round(clothes[i].sumScore);
+				var tmpScore = Math.round(clothes[i].tmpScore);
+				var bonus = Math.round(clothes[i].bonusScore).toString();
+				if (isAcc_c(type)){
+					if (gWordSet[str]['acc'][type] == null) 
+						gWordSet[str]['acc'][type] = {};
+					if (gWordSet[str]['acc'][type][bonus] == null) 
+						gWordSet[str]['acc'][type][bonus] = clothes[i];
+					else if (tmpScore > gWordSet[str]['acc'][type][bonus].tmpScore) 
+						gWordSet[str]['acc'][type][bonus] = clothes[i];
+				}else{
+					if (gWordSet[str]['clothes'][type] == null) 
+						gWordSet[str]['clothes'][type] = clothes[i];
+					else if (sumScore > gWordSet[str]['clothes'][type].sumScore) 
+						gWordSet[str]['clothes'][type] = clothes[i];
+				}
+				if (gWordSet[str]['rawScore'][type] == null) {
+					gWordSet[str]['rawScore'][type] = sumScore;
+					gWordSet[str]['rawSumScore'] += sumScore;
+				}else if (sumScore > gWordSet[str]['rawScore'][type]) {
+					gWordSet[str]['rawSumScore'] += (sumScore - gWordSet[str]['rawScore'][type]);
+					gWordSet[str]['rawScore'][type] = sumScore;
+				}
+			}
+		}
+	}
+	for (var i in gWordSet){//remove keywords with too many returns or no scores
+		if (i.indexOf("·")>=0) 
+			delete gWordSet[i];
+	}
+	
+	//gen all tagCate
+	gTagSet = {};
+	for (var i in clothes){
+		if (clothes[i].isF) continue;
+		var mainType = clothes[i].type.mainType;
+		if (mainType!='袜子'&&mainType!='饰品') continue; //skip unrelated
+		var type = clothes[i].type.type;
+		var tags = clothes[i].tags;
+		for (var j in tags){
+			if (!tags[j]) continue;
+			//if (tags[j].indexOf('+')>=0) continue; //skip 萤光之灵
+			var subtype = mainType=='袜子' ? mainType : type.split('·')[0];
+			tagCate = [subtype,tags[j]].join(' + ');
+			if (gTagSet[tagCate] == null){
+				gTagSet[tagCate] = {};
+				gTagSet[tagCate]['name'] = tagCate;
+				gTagSet[tagCate]['clothes'] = {};
+				gTagSet[tagCate]['acc'] = {};
+				gTagSet[tagCate]['typeCount'] = {};
+				gTagSet[tagCate]['count'] = 0;
+			}
+			var sumScore = Math.round(clothes[i].sumScore);
+			var tmpScore = Math.round(clothes[i].tmpScore);
+			var bonus = Math.round(clothes[i].bonusScore).toString();
+			if (isAcc_c(type)){
+				if (gTagSet[tagCate]['acc'][type] == null) 
+					gTagSet[tagCate]['acc'][type] = {};
+				if (gTagSet[tagCate]['acc'][type][bonus] == null) 
+					gTagSet[tagCate]['acc'][type][bonus] = clothes[i];
+				else if (tmpScore > gTagSet[tagCate]['acc'][type][bonus].tmpScore) 
+					gTagSet[tagCate]['acc'][type][bonus] = clothes[i];
+			}else{
+				if (gTagSet[tagCate]['clothes'][type] == null) 
+					gTagSet[tagCate]['clothes'][type] = clothes[i];
+				else if (sumScore > gTagSet[tagCate]['clothes'][type].sumScore) 
+					gTagSet[tagCate]['clothes'][type] = clothes[i];
+			}
+			
+			if (gTagSet[tagCate]['typeCount'][type] == null) gTagSet[tagCate]['typeCount'][type] = 0;
+			gTagSet[tagCate]['typeCount'][type] += 1;
+			gTagSet[tagCate]['count'] += 1;
+		}
+	}
+	for (var i in gTagSet){//remove keywords with too many returns
+		for (var j in gTagSet[i]['typeCount']){
+			if (j=='袜子-袜套') gTagSet[i]['typeCount'][j] += gTagSet[i]['typeCount']['袜子-袜子'];
+			else if (j=='袜子-袜子') gTagSet[i]['typeCount'][j] += gTagSet[i]['typeCount']['袜子-袜套'];
+		}
+	}
+}
+
+function evalSets(resultObj,limitRet,existObj){
+	var accCount = $('#opt_accAmt').val();
+	if (!accCount) {
+		alert('Invalid Accessories Count!');
+		return;
+	}
+	
+	for (var str in resultObj){
+		resultObj[str]['score'] = 0;
+		
+		if (resultObj[str]['typeCount']){ //tagSet, can modify
+			for (var j in resultObj[str]['typeCount']){
+				if (resultObj[str]['typeCount'][j] > limitRet){
+					resultObj[str]['count'] -= resultObj[str]['typeCount'][j];
+					delete resultObj[str]['clothes'][j];
+					delete resultObj[str]['acc'][j];
+				}
+			}
+			
+		}
+		else if (resultObj[str]['count'] && resultObj[str]['count'] > limitRet) continue;
+		
+		resultObj[str]['typeScore'] = {}; //init typeScore base on obj types
+		resultObj[str]['result'] = {}; //delete result remain in last run
+		if (existObj) for (var i in existObj) {
+			resultObj[str]['typeScore'][i] = 0;
+		}
+		
+		//calc scores and put to 'result'
+		for (var i in resultObj[str]['clothes']){
+			if (resultObj[str]['typeScore'][i]==null) resultObj[str]['typeScore'][i] = 0;
+			resultObj[str]['result'][i] = resultObj[str]['clothes'][i]; 
+		}
+		if(resultObj[str]['acc']) {
+			for (var type in resultObj[str]['acc']){
+				if (resultObj[str]['typeScore'][type]==null) resultObj[str]['typeScore'][type] = 0;
+				var maxScore = 0;
+				for (var bonus in resultObj[str]['acc'][type]){
+					var cl = resultObj[str]['acc'][type][bonus];
+					var score = isAccSumScore(cl,accCount);
+					if (score > maxScore) resultObj[str]['result'][type] = cl;
+					maxScore = score;
+				}
+			}
+		}
+		
+		//compare with existObj and get typeScore
+		for (var type in resultObj[str]['typeScore']){
+			if (existObj&&existObj[type]) resultObj[str]['typeScore'][type] = isAccSumScore(existObj[type],accCount);
+			if (!resultObj[str]['result'][type]) continue;
+			var score = isAccSumScore(resultObj[str]['result'][type],accCount);
+			if (score<=resultObj[str]['typeScore'][type]) delete resultObj[str]['result'][type];
+			else resultObj[str]['typeScore'][type] = score;
+		}
+		
+		//remove repelCates and calc score
+		for (var j in repelCates){
+			var sumFirst = [0,0]; //count, score
+			var sumOthers = [0,0];
+			for (var k in repelCates[j]){
+				if (resultObj[str]['typeScore'][repelCates[j][k]]){
+					var score = resultObj[str]['typeScore'][repelCates[j][k]];
+					if (k==0) { sumFirst[0]++; sumFirst[1] += score;}
+					else { sumOthers[0]++; sumOthers[1] += score; }
+				}
+			}
+			if (sumFirst[0]==0 || sumOthers[0]==0) continue;
+			if (sumFirst[1] < sumOthers[1]) {
+				if (resultObj[str]['typeScore'][repelCates[j][0]]){
+					delete resultObj[str]['result'][repelCates[j][0]];
+					delete resultObj[str]['typeScore'][repelCates[j][0]];
+				}
+			}else for (k=1; k<repelCates[j].length; k++) {
+				if (resultObj[str]['typeScore'][repelCates[j][k]]){
+					delete resultObj[str]['result'][repelCates[j][k]];
+					delete resultObj[str]['typeScore'][repelCates[j][k]];
+				}
+			}
+		}
+		for (var j in resultObj[str]['typeScore']){
+			if ($.inArray(getSubType(j), filters) < 0) continue; //matches
+			resultObj[str]['score'] += resultObj[str]['typeScore'][j];
+		}
+	}
+	return resultObj;
+}
+/*
 function removeRepelCates(resultobj){
 	for (var str in resultobj){
 		for (var j in repelCates){
@@ -276,7 +355,7 @@ function removeRepelCates(resultobj){
 		}
 	}
 	return resultobj;
-}
+}*/
 
 function getSelectedSet(){
 	var existScore = {};
@@ -284,18 +363,158 @@ function getSelectedSet(){
 		var setName = $('.suitlist_selected')[0].id; 
 		for (var i in lantu.suitArray){
 			if (setName == lantu.suitArray[i]['name']) {
-				for (var j in lantu.suitArray[i]['clothes']){
-					var cl = lantu.suitArray[i]['clothes'][j];
+				for (var j in lantu.suitArray[i]['result']){
+					var cl = lantu.suitArray[i]['result'][j];
 					if (!matches(cl)) continue;
 					cl.calc(criteria);
 					if (cl.isF) continue;
-					existScore[cl.type.type] = isAccSumScore(cl);
+					existScore[cl.type.type] = cl;
 				}
 				break;
 			}
 		}
 	}
 	return existScore;
+}
+
+function keywordToObj(arr){
+	var sumSets = {};
+	for (var i in arr){
+		var str = arr[i];
+		if (str.indexOf('套装-')==0) {//set
+			if (gSuitSet[str.replace('套装-','')]) sumSets[str] = gSuitSet[str.replace('套装-','')];
+		}
+		else if (str.indexOf(' + ')>0) {//tag
+			if (gTagSet[str]) sumSets[str] = gTagSet[str];
+		}
+		else {//word
+			if (gWordSet[str]) sumSets[str] = gWordSet[str];
+		}
+	}
+	return sumSets;
+}
+
+function listKeywords(arr){
+	var accCount = $('#opt_accAmt').val();
+	arr.sort(function(a,b){return b.indexOf('套装-')==0? 1 : 0;}); //push sets to first
+	var sumSets = evalSets(keywordToObj(arr),$('#opt_limitRet').val());
+	console.log (sumSets);
+	var out = $('<table></table>');
+	var header = $('<tr></tr>').append($('<td></td>'));
+	for (var i in arr) 
+		header.append($('<td>'+arr[i]+'<a href="" onclick="addSubCart('+"'"+arr[i]+"'"+');return false;">[+]</a><br>'+sumSets[arr[i]].score+'</td>'));
+	out.append(header);
+	
+	var outCategory = clone(category);
+	outCategory.sort(function(a,b){return a.indexOf('饰品-')==0? 1 : 0;}); //push acc to last
+	for (var c in outCategory){
+		var type = outCategory[c];
+		var blankLine = true;
+		var line = $('<tr></tr>').append($('<td>'+(type.indexOf('-')>0?type.split('-')[1]:type)+'</td>'));
+		for (var j in sumSets){
+			if (sumSets[j]['result'][type]) {
+				line.append($('<td>'+sumSets[j]['result'][type].name+'<br>'+sumSets[j]['typeScore'][type]+'</td>'));
+				blankLine = false;
+			}
+			else line.append($('<td></td>'));
+		}
+		if(!blankLine) out.append(line);
+	}
+	out.addClass("solidTable");
+	$('#finalList').html(out);
+}
+
+function sumKeywords(arr,accCount){
+	//note: if accCount is not given, need to be calculated here
+	var sumSets = keywordToObj(arr);
+	arr.sort(function(a,b){return b.indexOf('套装-')==0? 1 : 0;}); //push sets to first
+	if (!accCount){
+		var accList = [];
+		for (var str in sumSets) if (sumSets[str]['acc']) for (var type in sumSets[str]['acc']) checkPush(type, accList);
+		accCount = accList.length;
+	}
+	var ret = {};
+	for (var i in arr){
+		var str = arr[i];
+		ret = sumEvalSets(ret, clone(sumSets[str]), accCount, $('#opt_limitRet').val());
+	}
+	return ret;
+}
+
+function sumEvalSets(existObj, newObj, accCount, limitRet){
+	if (newObj['typeCount']){ //tagSet
+		for (var j in newObj['typeCount']){
+			if (newObj['typeCount'][j] > limitRet){
+				newObj['count'] -= newObj['typeCount'][j];
+				delete newObj['clothes'][j];
+				delete newObj['acc'][j];
+			}
+		}
+	}
+	else if (newObj['count'] && newObj['count'] > limitRet) return existObj;
+	
+	newObj['score'] = 0;
+	newObj['typeScore'] = {}; //init typeScore base on obj types
+	newObj['result'] = {}; //delete result remain in last run
+	if(existObj['result']) for (var i in existObj['result']) newObj['typeScore'][i] = 0;
+	//calc scores and put to 'result'
+	for (var i in newObj['clothes']){
+		if (newObj['typeScore'][i]==null) newObj['typeScore'][i] = 0;
+		newObj['result'][i] = newObj['clothes'][i]; 
+	}
+	if(newObj['acc']) {
+		for (var type in newObj['acc']){
+			if (newObj['typeScore'][type]==null) newObj['typeScore'][type] = 0;
+			var maxScore = 0;
+			for (var bonus in newObj['acc'][type]){
+				var cl = newObj['acc'][type][bonus];
+				var score = isAccSumScore(cl,accCount);
+				if (score > maxScore) newObj['result'][type] = cl;
+				maxScore = score;
+			}
+		}
+	}
+	
+	//compare with existObj and get typeScore
+	for (var type in newObj['typeScore']){
+		if (existObj['result']&&existObj['result'][type]) newObj['typeScore'][type] = isAccSumScore(existObj['result'][type],accCount);
+		if (!newObj['result'][type]) {
+			newObj['result'][type] = existObj['result'][type];
+			continue;
+		}
+		var score = isAccSumScore(newObj['result'][type],accCount);
+		if (score<newObj['typeScore'][type]) newObj['result'][type] = existObj['result'][type];
+		else newObj['typeScore'][type] = score;
+	}
+	
+	//remove repelCates and calc score
+	for (var j in repelCates){
+		var sumFirst = [0,0]; //count, score
+		var sumOthers = [0,0];
+		for (var k in repelCates[j]){
+			if (newObj['typeScore'][repelCates[j][k]]){
+				var score = newObj['typeScore'][repelCates[j][k]];
+				if (k==0) { sumFirst[0]++; sumFirst[1] += score;}
+				else { sumOthers[0]++; sumOthers[1] += score; }
+			}
+		}
+		if (sumFirst[0]==0 || sumOthers[0]==0) continue;
+		if (sumFirst[1] < sumOthers[1]) {
+			if (newObj['typeScore'][repelCates[j][0]]){
+				delete newObj['result'][repelCates[j][0]];
+				delete newObj['typeScore'][repelCates[j][0]];
+			}
+		}else for (k=1; k<repelCates[j].length; k++) {
+			if (newObj['typeScore'][repelCates[j][k]]){
+				delete newObj['result'][repelCates[j][k]];
+				delete newObj['typeScore'][repelCates[j][k]];
+			}
+		}
+	}
+	for (var j in newObj['typeScore']){
+		newObj['score'] += newObj['typeScore'][j];
+	}
+	return newObj;
 }
 
 function showAllowCates(){
@@ -308,10 +527,22 @@ function showAllowCates(){
 	}
 }
 
+function isAcc(c){
+	return c.type.mainType == "饰品";
+}
+
+function isAcc_c(type){
+	return type.indexOf("饰品")==0;
+}
+
+function isAccSumScore(c,num){
+	return c.isF ? 0 : (isAcc(c) ? Math.round(accSumScore(c,num?num:accCateNum)) : c.sumScore);
+}
+/*
 function isAccSumScore(a){
 	if (a.type.mainType == "饰品") return Math.round(accSumScore(a,$('#opt_accAmt').val()));
 	else return a.sumScore;
-}
+}*/
 
 function byAccSumScore(a, b) {
 	return isAccSumScore(a) - isAccSumScore(b) == 0 ? a.id - b.id : isAccSumScore(b) - isAccSumScore(a);
@@ -337,6 +568,7 @@ function onChangeCriteria() {
 		criteria.bonus = global.additionalBonus;
 	}
 	criteria.levelName = $("#theme").val();
+	lantu_init();
 }
 
 function matches(c) {
@@ -347,6 +579,46 @@ function matches(c) {
 function getSubType(type){
 	var type1 = type.split('·')[0];
 	return type1.indexOf('-')>=0 ? type1.split('-')[1] : type1;
+}
+
+function buttonCart(txt){
+	return '<button class="btn btn-xs btn-default">'+txt+'<a href="" onclick="delCart('+"'"+txt+"'"+');return false;">[×]</a></button>';
+}
+
+function addCart(txt){
+	//check exist
+	if($.inArray(txt,cartKeyword)>=0) return;
+	//check other sets
+	if (txt.indexOf('套装-')==0) for (var i in cartKeyword) if (cartKeyword[i].indexOf('套装-')==0) delCart(cartKeyword[i]);
+	//addCart
+	cartKeyword.push(txt);
+	refreshCart();
+}
+
+function addSubCart(txt){
+	//check exist
+	if($.inArray(txt,subCartKeyword)>=0) return;
+	//check other sets
+	if (txt.indexOf('套装-')==0) for (var i in subCartKeyword) if (subCartKeyword[i].indexOf('套装-')==0) delCart(subCartKeyword[i]);
+	//addCart
+	subCartKeyword.push(txt);
+	$("#subCart").html('');
+	for (var i in subCartKeyword) $("#subCart").append(buttonCart(subCartKeyword[i]));
+}
+
+function delCart(txt){
+	var index = $.inArray(txt,cartKeyword);
+	if (index > -1) cartKeyword.splice(index, 1);
+	refreshCart();
+}
+
+function refreshCart(){
+	$("#cartKeyword").html('');
+	for (var i in cartKeyword) $("#cartKeyword").append(buttonCart(cartKeyword[i]));
+}
+
+function checkPush(item, arr){
+	if ($.inArray(item, arr)<0) arr.push(item);
 }
 
 function initEvent() {
@@ -402,11 +674,80 @@ function initEvent() {
 			if (index > -1) filters.splice(index, 1);
 		}
 	});
+	$("#cart_val").click(function(){
+		var cates = ['饰品']; var missingCates = '';
+		for (var i in cartKeyword){
+			if (cartKeyword[i].indexOf('套装-')==0&&gSuitSet[cartKeyword[i].replace('套装-','')]) {
+				for (var c in gSuitSet[cartKeyword[i].replace('套装-','')]['clothes']){
+					var cl = gSuitSet[cartKeyword[i].replace('套装-','')]['clothes'][c];
+					checkPush(cl.type.mainType, cates);
+				}
+			}
+			if (gWordSet[cartKeyword[i]]) {
+				for (var c in gWordSet[cartKeyword[i]]['clothes']){
+					var cl = gWordSet[cartKeyword[i]]['clothes'][c];
+					checkPush(cl.type.mainType, cates);
+				}
+			}
+			if (gTagSet[cartKeyword[i]]) {
+				for (var c in gTagSet[cartKeyword[i]]['clothes']){
+					var cl = gTagSet[cartKeyword[i]]['clothes'][c];
+					checkPush(cl.type.mainType, cates);
+				}
+			}
+		}
+		for (var i in repelCates){
+			if ($.inArray(repelCates[i][0], cates)>=0){
+				for (var j in repelCates[i]){
+					if (j>0) checkPush(repelCates[i][j], cates);
+				}
+				
+			}else{
+				for (var j in repelCates[i]){
+					if (j==0) continue;
+					else if ($.inArray(repelCates[i][j], cates)<0) break;
+					else if (j==repelCates[i].length-1) checkPush(repelCates[i][0], cates);
+				}
+			}
+		}
+		for (var i in CATEGORY_HIERARCHY){
+			if ($.inArray(i, cates)<0) missingCates += ' '+i;
+		}
+		alert('尚缺大件:'+missingCates);
+	});
+	$("#cart_add").click(function(){
+		var txt = $("#cartKeyword_add").val();
+		addCart(txt);
+		$("#cartKeyword_add").val('');
+	});
+	$("#cart_clear").click(function(){
+		cartKeyword = [];
+		$("#cartKeyword").html('');
+	});
+	$("#finalList_clear").click(function(){
+		$("div[id*=List]").html('');
+	});
+	$("#cart_calc").click(function(){
+		$("div[id*=List]").html('');
+		listKeywords(cartKeyword);
+	});
+	$("#cart_reSearch").click(function(){
+		$("#manualList").html('');
+	});
+	$("#subCart_calc").click(function(){
+		var aaa = sumKeywords(subCartKeyword);
+		$("#finalList_1").html(aaa.score);
+	});
+	$("#subCart_clear").click(function(){
+		subCartKeyword = [];
+		$("#subCart").html('');
+	});
 }
 
 function init() {
 	drawTheme();
 	showAllowCates();
+	lantu_init();
 	initEvent();
 }
 
