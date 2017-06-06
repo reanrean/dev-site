@@ -64,6 +64,7 @@ var output = {
 	},
 	print: function(id, clothes){
 		this.empty(id);
+		var accCount = $('#opt_accAmt').val();
 		if ($('.suitlist_selected')[0]){
 			$(id).append(this.br);
 			$(id).append("打底套装："+$('.suitlist_selected')[0].id);
@@ -97,7 +98,7 @@ var output = {
 			for (var j in keys){
 				var cl = clothes[i].result[keys[j]];
 				if (!matches(cl)) continue;
-				var $clothes = $('<div><span data-toggle="tooltip" data-placement="bottom" title="'+cl.source+'　'+cl.version+'">'+cl.name+'|'+cl.type.type+'|'+isAccSumScore(cl)+'</span></div>');
+				var $clothes = $('<div><span data-toggle="tooltip" data-placement="bottom" title="'+cl.source+'　'+cl.version+'">'+cl.name+'|'+cl.type.type+'|'+isAccSumScore(cl,(clothes[i].accCount?clothes[i].accCount:accCount))+'</span></div>');
 				$clothes.addClass('out_clothes');
 				$div.append($clothes);
 			}
@@ -495,6 +496,35 @@ function sumEvalSets(existObj, newObj, accCount, limitRet){
 	return newObj;
 }
 
+function refineSets(obj){ //test to reduce an acc, see score increase or not
+	var accCount = 0;
+	if(obj['result']) for (var i in obj['result'])
+		if (i.indexOf('饰品')==0) accCount++;
+	obj['reduced'] = [];
+	do {
+		var newObj = clone(obj);
+		accCount --;
+		var beforeScore = newObj['score'];
+		
+		var typeScoreArr = [];
+		for (var type in newObj['result']){
+			if(type.indexOf('饰品')==0) typeScoreArr.push([isAccSumScore(newObj['result'][type], accCount), type]);
+		}
+		typeScoreArr.sort(function(a,b){return  a[0] - b[0];});
+		
+		newObj['reduced'].push(newObj['result'][typeScoreArr[0][1]]);
+		delete newObj['result'][typeScoreArr[0][1]];
+		
+		var afterScore = 0;
+		for (var type in newObj['result']) afterScore += isAccSumScore(newObj['result'][type],accCount);
+		newObj['score'] = afterScore;
+		
+		if (beforeScore < afterScore) obj = newObj;
+	}while (beforeScore < afterScore)
+	
+	return obj;
+}
+
 function showAllowCates(){
 	filters = [];
 	for (var c in outCategory){
@@ -595,7 +625,7 @@ function refreshSubCart(){
 	$("#subCartScore").html('');
 	for (var i in subCartKeyword) $("#subCart").append(buttonCart(subCartKeyword[i],true));
 	if(subCartKeyword.length) {
-		var cartObjSum = sumKeywords(subCartKeyword);
+		var cartObjSum = refineSets(sumKeywords(subCartKeyword));
 		$("#subCartScore").html(cartObjSum.score+'分');
 	}
 }
@@ -737,44 +767,18 @@ function initEvent() {
 	$("#subCart_calc").click(function(){
 		$("#finalList_1").html('');
 		if(!subCartKeyword.length) {alert('No keywords in cart!'); return false;}
-		var cartObjSum = sumKeywords(subCartKeyword);
+		var cartObjSum = refineSets(sumKeywords(subCartKeyword));
+		console.log(cartObjSum);
 		var accCount = 0;
 		if(cartObjSum['result']) for (var i in cartObjSum['result'])
 			if (i.indexOf('饰品')==0) accCount++;
 		var cartObjKW = evalSets(keywordToObj(subCartKeyword), $('#opt_limitRet').val(), {}, accCount);
-		//test to reduce an acc, see score increase or not
-		/*var cartObjSum_test = clone(cartObjSum);
-		var accCount_test = accCount;
-		var reduce_result = [];
-		do {
-			accCount_test --;
-			var beforeScore = afterScore;
-			
-			var typeScoreArr = [];
-			for (var type in cartObjSum_test['result']){
-				typeScoreArr.push([isAccSumScore(cartObjSum_test['result'][type], accCount), type]);
-			}
-			typeScoreArr.sort(function(a,b){return  a[0] - b[0];});
-			reduce_result.push(typeScoreArr[0][1]+'|'+cartObjSum_test['result'][typeScoreArr[0][1]].name);
-			delete cartObjSum_test['result'][typeScoreArr[0][1]];
-			
-			var afterScore = 0;
-			for (var type in cartObjSum_test['result']) afterScore += isAccSumScore(cartObjSum_test['result'][type],accCount_test);
-			cartObjSum_test['score'] = afterScore;
-		}while (beforeScore<afterScore)
-		
-		if (afterScore > cartObjSum['score']) {
-			cartObjSum = cartObjSum_test;
-			$("#subCartScore").html(cartObjSum.score+'分');
-			reduce_result.slice(0, -1);//rm last item
-			alert('去掉以下衰减饰品：'+reduce_result.join(', '));
-		}*/
 		
 		var cartKW = {};
 		for (var type in cartObjSum['result']){
 			for (var str in cartObjKW){
 				if (cartObjKW[str]['result'][type]&&cartObjSum['result'][type].longid==cartObjKW[str]['result'][type].longid) {
-					if (!cartKW[str]) {cartKW[str] = {}; cartKW[str]['name'] = str;}
+					if (!cartKW[str]) {cartKW[str] = {}; cartKW[str]['name'] = str; cartKW[str]['accCount'] = accCount;}
 					if (!cartKW[str]['result']) cartKW[str]['result'] = {};
 					if (!cartKW[str]['score']) cartKW[str]['score'] = 0;
 					cartKW[str]['result'][type] = cartObjKW[str]['result'][type];
@@ -788,6 +792,12 @@ function initEvent() {
 		if (cartKWArr.length>0) {
 			$('.suitlist_selected').removeClass();
 			output.print('#finalList_1', cartKWArr);
+			if(cartObjSum['reduced']) {
+				$('#finalList_1').append('&ndash;已去除衰减饰品<br>');
+				for (var r in cartObjSum['reduced']){
+					$('#finalList_1').append(cartObjSum['reduced'][r].name+'|'+cartObjSum['reduced'][r].type.type+'|'+isAccSumScore(cartObjSum['reduced'][r],accCount)+'<br>');
+				}
+			}
 		}
 	});
 	$("#subCart_clear").click(function(){
