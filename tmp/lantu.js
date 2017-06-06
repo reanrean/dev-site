@@ -5,6 +5,13 @@ var gSuitSet = {};
 var gWordSet = {};
 var gTagSet = {};
 
+var outCategory = function() {
+	var ret = [];
+	for (var c in category) if(category[c].indexOf('饰品-')!=0) ret.push(category[c]);
+	for (var c in category) if(category[c].indexOf('饰品-')==0) ret.push(category[c]);
+	return ret;
+}();
+
 var lantu = {
 	wordArray: [],
 	suitArray: [],
@@ -14,27 +21,21 @@ var lantu = {
 		this.suitArray = [];
 		var suitSet = evalSets(gSuitSet);
 		for (var i in suitSet) this.suitArray.push(suitSet[i]);
-		this.suitArray.sort(function(a,b){
-			return  b["score"] - a["score"];
-		});
+		this.suitArray.sort(function(a,b){return  b["score"] - a["score"];});
 	},
 	initWord: function(){
 		this.wordArray = [];
 		var existScore = getSelectedSet();
 		var wordSet = evalSets(gWordSet,$('#opt_limitRet').val(),existScore);
 		for (var i in wordSet) this.wordArray.push(wordSet[i]);
-		this.wordArray.sort(function(a,b){
-			return  b["score"] - a["score"];
-		});
+		this.wordArray.sort(function(a,b){return  b["score"] - a["score"];});
 	},
 	initTag: function(){
 		this.tagArray = [];
 		var existScore = getSelectedSet();
 		var tagSet = evalSets(clone(gTagSet),$('#opt_limitRet').val(),existScore);
 		for (var i in tagSet) this.tagArray.push(tagSet[i]);
-		this.tagArray.sort(function(a,b){
-			return  b["score"] - a["score"];
-		});
+		this.tagArray.sort(function(a,b){return  b["score"] - a["score"];});
 	},
 	initManual: function(keywordstr){
 		this.manualArray = [];
@@ -50,9 +51,7 @@ var lantu = {
 		var manualSet = evalSets(clone(manualSet),$('#opt_limitRet').val(),existScore);
 		for (var i in manualSet) if (i.indexOf('套装-')>=0) delete manualSet[i]['count'];
 		for (var i in manualSet) this.manualArray.push(manualSet[i]);
-		this.manualArray.sort(function(a,b){
-			return  b["score"] - a["score"];
-		});
+		this.manualArray.sort(function(a,b){return  b["score"] - a["score"];});
 	}
 }
 
@@ -88,7 +87,7 @@ var output = {
 			var keys = [];
 			for (var j in clothes[i].result) keys.push(j);
 			keys.sort(function(a,b){
-				if ($.inArray(a,category)>=0) return $.inArray(a,category) - $.inArray(b,category);
+				if ($.inArray(a,outCategory)>=0) return $.inArray(a,outCategory) - $.inArray(b,outCategory);
 			});
 			for (var j in keys){
 				var cl = clothes[i].result[keys[j]];
@@ -239,8 +238,8 @@ function lantu_init(){
 	}
 }
 
-function evalSets(resultObj,limitRet,existObj){
-	var accCount = $('#opt_accAmt').val();
+function evalSets(resultObj,limitRet,existObj,accCount){
+	if (!accCount) var accCount = $('#opt_accAmt').val();
 	if (!accCount) {alert('Invalid Accessories Count!'); return false;}
 	
 	for (var str in resultObj){
@@ -395,19 +394,12 @@ function listKeywords(arr){
 	var accCount = $('#opt_accAmt').val();
 	arr.sort(function(a,b){return b.indexOf('套装-')==0? 1 : 0;}); //push sets to first
 	var sumSets = evalSets(keywordToObj(arr),$('#opt_limitRet').val());
-	console.log (sumSets);
 	var out = $('<table></table>');
 	var header = $('<tr></tr>').append($('<td></td>'));
 	for (var i in arr) 
 		header.append($('<td>'+arr[i]+'<a href="" onclick="addSubCart('+"'"+arr[i]+"'"+');return false;">[+]</a><br>'+sumSets[arr[i]].score+'</td>'));
 	out.append(header);
 	
-	var outCategory = function() {
-		var ret = [];
-		for (var c in category) if(category[c].indexOf('饰品-')!=0) ret.push(category[c]);
-		for (var c in category) if(category[c].indexOf('饰品-')==0) ret.push(category[c]);
-		return ret;
-	}();
 	/*clone(category);
 	outCategory.sort(function(a,b){return b.indexOf('饰品-')!=0? 1 : 0;}); //push acc to last*/
 	
@@ -434,7 +426,7 @@ function listKeywords(arr){
 }
 
 function sumKeywords(arr,accCount){
-	//note: if accCount is not given, need to be calculated here
+	//if accCount is not given, need to be calculated here
 	var sumSets = keywordToObj(arr);
 	arr.sort(function(a,b){return b.indexOf('套装-')==0? 1 : 0;}); //push sets to first
 	if (!accCount){
@@ -528,9 +520,9 @@ function sumEvalSets(existObj, newObj, accCount, limitRet){
 
 function showAllowCates(){
 	filters = [];
-	for (var c in category){
-		var type = getSubType(category[c]);
-		if ($.inArray(getSubType(type), filters) >= 0) continue;
+	for (var c in outCategory){
+		var type = getSubType(outCategory[c]);
+		if ($.inArray(type, filters) >= 0) continue;
 		$('#opt_allowCates').append('<label><input type="checkbox" checked />'+type+'</label>');
 		filters.push(type);
 	}
@@ -590,8 +582,8 @@ function getSubType(type){
 	return type1.indexOf('-')>=0 ? type1.split('-')[1] : type1;
 }
 
-function buttonCart(txt,xlink){
-	return '<button class="btn btn-xs btn-default">'+txt+(xlink?'<a href="" onclick="delCart('+"'"+txt+"'"+');return false;">[×]</a>':'')+'</button>';
+function buttonCart(txt,sub){
+	return '<button class="btn btn-xs btn-default">'+txt+'<a href="" onclick="del'+(sub?'Sub':'')+'Cart('+"'"+txt+"'"+');return false;">[×]</a>'+'</button>';
 }
 
 function addCart(txt){
@@ -612,7 +604,7 @@ function addSubCart(txt){
 	//addCart
 	subCartKeyword.push(txt);
 	$("#subCart").html('');
-	for (var i in subCartKeyword) $("#subCart").append(buttonCart(subCartKeyword[i]));
+	for (var i in subCartKeyword) $("#subCart").append(buttonCart(subCartKeyword[i]),true);
 }
 
 function delCart(txt){
@@ -621,9 +613,15 @@ function delCart(txt){
 	refreshCart();
 }
 
+function delSubCart(txt){
+	var index = $.inArray(txt,cartKeyword);
+	if (index > -1) cartKeyword.splice(index, 1);
+	refreshCart();
+}
+
 function refreshCart(){
 	$("#cartKeyword").html('');
-	for (var i in cartKeyword) $("#cartKeyword").append(buttonCart(cartKeyword[i],true));
+	for (var i in cartKeyword) $("#cartKeyword").append(buttonCart(cartKeyword[i],false));
 }
 
 function checkPush(item, arr){
@@ -668,20 +666,24 @@ function initEvent() {
 		}
 	});
 	$("#opt_allowCates_all").click(function(){
-		$("#opt_allowCates").html('');
-		showAllowCates();
+		$("#opt_allowCates input").prop('checked', true);
+		for (var c in outCategory)
+			checkPush(getSubType(outCategory[c]), filters);
+		console.log(filters);
 	});
 	$("#opt_allowCates_none").click(function(){
-		$("#opt_allowCates input").attr('checked', false);
+		$("#opt_allowCates input").prop('checked', false);
 		filters = [];
+		console.log(filters);
 	});
 	$("#opt_allowCates input").click(function(){
 		var label = $(this)[0].nextSibling.nodeValue;
-		if ($(this)[0].checked) filters.push(label);
+		if ($(this)[0].checked) checkPush(label, filters);
 		else {
 			var index = $.inArray(label,filters);
 			if (index > -1) filters.splice(index, 1);
 		}
+		console.log(filters);
 	});
 	$("#cart_val").click(function(){
 		var cates = ['饰品']; var missingCates = '';
@@ -742,15 +744,13 @@ function initEvent() {
 	});
 	$("#cart_reSearch").click(function(){
 		if(!cartKeyword.length) {alert('No keywords in cart!'); return false;}
-		var cartObj = sumKeywords(cartKeyword);
+		var cartObj = sumKeywords(cartKeyword,$('#opt_accAmt').val());
 		var reSearch = [];
 		var reSearch1 = evalSets(gWordSet,$('#opt_limitRet').val(),cartObj['result']);
 		var reSearch2 = evalSets(clone(gTagSet),$('#opt_limitRet').val(),cartObj['result']);
 		for (var i in reSearch1) reSearch.push(reSearch1[i]);
 		for (var i in reSearch2) reSearch.push(reSearch2[i]);
-		reSearch.sort(function(a,b){
-			return  b["score"] - a["score"];
-		});
+		reSearch.sort(function(a,b){return  b["score"] - a["score"];});
 		if (reSearch.length>0) {
 			$('.suitlist_selected').removeClass();
 			output.print('#manualList', reSearch);
@@ -759,8 +759,17 @@ function initEvent() {
 	});
 	$("#subCart_calc").click(function(){
 		$("#finalList_1").html('');
-		var aaa = sumKeywords(subCartKeyword);
-		$("#finalList_1").html(aaa.score);
+		if(!subCartKeyword.length) {alert('No keywords in cart!'); return false;}
+		var cartObjSum = sumKeywords(subCartKeyword);
+		console.log(Object.keys(cartObjSum['acc']).length);//use result, not acc
+		console.log(cartObjSum);
+		var cartObjKW = evalSets(keywordToObj(subCartKeyword), $('#opt_limitRet').val(), {}, Object.keys(cartObjSum['acc']).length);
+		for (var c in outCategory){
+			if (cartObjSum['result'][outCategory[c]]) {
+				
+			}
+		}
+		$("#finalList_1").html(cartObjSum.score);
 	});
 	$("#subCart_clear").click(function(){
 		subCartKeyword = [];
