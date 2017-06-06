@@ -767,6 +767,10 @@ function initEvent() {
 	$("#subCart_calc").click(function(){
 		$("#finalList_1").html('');
 		if(!subCartKeyword.length) {alert('No keywords in cart!'); return false;}
+		
+		var filters_tmp = clone(filters); //disable the filter temporarily
+		for (var c in outCategory) checkPush(getSubType(outCategory[c]), filters);
+		
 		var cartObjSum = refineSets(sumKeywords(subCartKeyword));
 		var accCount = 0;
 		if(cartObjSum['result']) for (var i in cartObjSum['result'])
@@ -798,6 +802,8 @@ function initEvent() {
 				}
 			}
 		}
+		
+		filters = clone(filters_tmp); //enable the filter back
 	});
 	$("#subCart_clear").click(function(){
 		subCartKeyword = [];
