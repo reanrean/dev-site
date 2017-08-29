@@ -110,8 +110,12 @@ var output = {
 }
 
 function lantu_init(){
+	//check ownCnt and decide whether calc global
+	var ownCnt = loadFromStorage().size>0 ? 1 : 0;
+	
 	allScores = {};
 	for (var i in clothes) {//calc each clothes, put to allScores[type], and sort
+		if (ownCnt && !clothes[i].own) continue;
 		clothes[i].calc(criteria);
 		if (clothes[i].isF) continue;
 		if (!allScores[clothes[i].type.type]) allScores[clothes[i].type.type] = [];
@@ -131,16 +135,22 @@ function lantu_init(){
 			gSuitSet[setName]['name'] = '套装-'+setName;
 			gSuitSet[setName]['clothes'] = {};
 			gSuitSet[setName]['acc'] = {};
+			gSuitSet[setName]['missing'] = false;
 		}
+		if (ownCnt && !clothes[i].own) gSuitSet[setName]['missing'] = true;
 		if (isAcc(clothes[i])) {
 			if (!gSuitSet[setName]['acc'][type]) gSuitSet[setName]['acc'][type] = {};
 			gSuitSet[setName]['acc'][type]['0'] = clothes[i];
 		}else gSuitSet[setName]['clothes'][type] = clothes[i];
 	}
+	for (var setName in gSuitSet){
+		if (gSuitSet[setName]['missing']) delete gSuitSet[setName];
+	}
 	
 	//gen all wordSet
 	gWordSet = {};
 	for (var i in clothes){
+		if (ownCnt && !clothes[i].own) continue;
 		var name = clothes[i].name;
 		var type = clothes[i].type.type;
 		var matchStr = [];
@@ -196,6 +206,7 @@ function lantu_init(){
 	//gen all tagCate
 	gTagSet = {};
 	for (var i in clothes){
+		if (ownCnt && !clothes[i].own) continue;
 		if (clothes[i].isF) continue;
 		var mainType = clothes[i].type.mainType;
 		if (mainType!='袜子'&&mainType!='饰品') continue; //skip unrelated
@@ -535,6 +546,11 @@ function showAllowCates(){
 	}
 }
 
+function clearCustomInventory(){
+	$("#myClothes").val('');
+	loadCustomInventory();
+}
+
 function isAcc(c){
 	return c.type.mainType == "饰品";
 }
@@ -644,6 +660,7 @@ function initEvent() {
 	$("#showSuit").click(function(){
 		lantu.initSuit();
 		if (lantu.suitArray.length>0) output.print('#suitList', lantu.suitArray);
+		else $('#suitList').html('<br>无结果');
 		//http://stackoverflow.com/questions/32195962/differentiate-the-clicks-between-parent-and-child-using-javascript-jquery
 		$("#suitList > div").click(function(){
 			if ($(this).hasClass("suitlist_selected")) $(this).removeClass();
@@ -656,14 +673,17 @@ function initEvent() {
 	$("#showWord").click(function(){
 		lantu.initWord();
 		if (lantu.wordArray.length>0) output.print('#wordList', lantu.wordArray);
+		else $('#wordList').html('<br>无结果');
 	});
 	$("#showTag").click(function(){
 		lantu.initTag();
 		if (lantu.tagArray.length>0) output.print('#tagList', lantu.tagArray);
+		else $('#tagList').html('<br>无结果');
 	});
 	$("#showManual").click(function(){
 		lantu.initManual($('#manualKeyWords').val());
 		if (lantu.manualArray.length>0) output.print('#manualList', lantu.manualArray);
+		else $('#manualList').html('<br>无结果');
 	});
 	$('#manualKeyWords').keydown(function(e) {
 		if (e.keyCode==13) {
@@ -814,8 +834,20 @@ function initEvent() {
 function init() {
 	drawTheme();
 	showAllowCates();
+	updateSize(loadFromStorage());
 	lantu_init();
 	initEvent();
+}
+
+function loadCustomInventory() {
+	var myClothes = $("#myClothes").val().replace(/上衣/g,'上装');
+	if (myClothes.indexOf('|') > 0) {
+		loadNew(myClothes);
+	} else {
+		load(myClothes);
+	}
+	saveAndUpdate();
+	lantu_init();
 }
 
 function menuFixed(tmp){};
