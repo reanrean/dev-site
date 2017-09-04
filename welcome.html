@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -6,6 +6,7 @@
 <link rel="stylesheet" type="text/css" href="http://aojiaogongluezu.github.io/nikkiup2u3/css/style.css" />
 <script type='text/javascript' charset="UTF-8" src='http://aojiaogongluezu.github.io/nikkiup2u3/javascripts/eventAlert.js'></script>
 <script type='text/javascript' charset="UTF-8" src='http://aojiaogongluezu.github.io/nikkiup2u3/data/HuoDong.js'></script>
+<script type='text/javascript' charset="UTF-8" src='https://www.xul.fr/ajax/responseHTML.txt'></script>
 <script type='text/javascript' charset="UTF-8">
 window.onload = function(){ 
 	clickExpand();
@@ -31,6 +32,30 @@ function cel(text){
 
 function el(text){
 	return document.getElementById(text);
+}
+
+function createXHR() {
+  if (typeof XMLHttpRequest != 'undefined') {
+    return new XMLHttpRequest();
+  } else if (typeof ActiveXObject != 'undefined') {
+    if (typeof arguments.callee.activeXString != 'string') {
+      var versions = ['MSXML2.XMLHttp.6.0', 
+                      'MSXML2.XMLHttp.3.0', 
+                      'MSXML2.XMLHttp'],
+          i, len;
+      for (i=0, len=versions.length; i<len; i++) {
+        try {
+          new ActiveXObject(versions[i]);
+          arguments.callee.activeXString = versions[i];
+        } catch(ex) { 
+          // 跳過 
+        }
+      }
+    }
+    return new ActiveXObject(arguments.callee.activeXString);
+  } else {
+    throw new Error('無可用的XHR對象');
+  }
 }
 
 </script>
@@ -82,6 +107,12 @@ table.NewRec tr td:nth-child(2) {
 <!--自动生成公主双倍材料汇总，别删--><span id="autogenGZ"></span>
 
 <!--►▲▼-->
+
+<input type="button" name="button" value="Load another page" onclick="loadWholePage('top.html')" ;="">
+<div id="displayed">
+</div>
+<div id="storage">
+</div>
 
 <a id="6"></a>
 <table width="100%" class="summ">
