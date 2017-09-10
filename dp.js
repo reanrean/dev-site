@@ -35,7 +35,7 @@ function chgMode(mode){
 			break;
 	}
 }
-window.onload = function(){
+function loadStyles(){
 	var radio_text='<form action="">';
 	radio_text+='<label><input type="radio" name="limit" id="limitn" value="n" checked onclick="chgMode(this.value)">标准权重</label>';
 	radio_text+='<label><input type="radio" name="limit" id="limitl" value="l" onclick="chgMode(this.value)">极限权重</label>';
@@ -54,4 +54,7 @@ window.onload = function(){
 			if(!elts[i].className) {elts[i].className="aTooltip";}
 		}
 	}
+}
+window.onload = function(){
+	loadStyles();
 };
