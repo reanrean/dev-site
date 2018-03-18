@@ -1,0 +1,153 @@
+<!DOCTYPE HTML>
+<html lang="zh">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+	<link rel="icon" href="../index/img/favicon.jpg" type="image/x-icon" />
+	<meta name="renderer" content="webkit">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+	<title>Miracle Nikki - 奇迹暖暖关卡顶配分数更新</title>
+	<link rel="stylesheet" href="bootstrap/bootstrap.min.css">
+	<style>
+		.unwrap {word-break:keep-all; color:#ff7890;}
+		a.cTip {color:inherit;}
+		a.cTip:hover {text-decoration:none;}
+		a.monkey {color:inherit;text-decoration:none;}
+		label {font-weight:normal;}
+		body {margin:1em; font-family: "Helvetica Neue", Helvetica, Microsoft Yahei, Hiragino Sans GB, WenQuanYi Micro Hei, sans-serif;}
+		fieldset {width:100%; max-width:270px; padding:.35em .625em .75em; border:1px solid silver;}
+		legend {border:0; width:auto; margin-bottom:0; font-size:14px;}
+		td {padding:5px;}
+		tr:first-child {font-weight:bold;}
+		[tooltip]:hover:before {
+			margin-top:25px; margin-left:-80px; padding: 5px; 
+			position: absolute; content: attr(tooltip); display: inline-block; z-index: 255; 
+			white-space:pre; color: black; background-color: #EAF2FA;
+		}
+		.normTip [tooltip]:hover:before {
+			margin-left:0px; width: 170px; word-break:break-all; white-space:pre-wrap;
+		}
+	</style>
+	<script type='text/javascript' charset="UTF-8" src='jquery.js'></script>
+	<script type='text/javascript' charset="UTF-8" src='data/wardrobe.js'></script>
+	<script type='text/javascript' charset="UTF-8" src='data/exc.js'></script>
+	<script type='text/javascript' charset="UTF-8" src='scoring.js'></script>
+	<script type='text/javascript' charset="UTF-8" src='model.js'></script>
+	<script type='text/javascript' charset="UTF-8" src='data/flist.js'></script>
+	<script type='text/javascript' charset="UTF-8" src='data/merchant.js'></script>
+	<script type='text/javascript' charset="UTF-8" src='data/construct.js'></script>
+	<script type='text/javascript' charset="UTF-8" src='data/levels.js'></script>
+	<script type='text/javascript' charset="UTF-8" src='data/levels-hs.js'></script>
+	<script type='text/javascript' charset="UTF-8" src='sha1.js'></script>
+	<script type='text/javascript' charset="UTF-8" src='top_update.js'></script>
+	<script type='text/javascript' charset="UTF-8">
+	$(document).ready(function () {
+		if (typeof(Storage) !== "undefined"&&localStorage.getItem("rean_topupdate_buzz")){
+			if(localStorage.getItem("rean_topupdate_buzz")>0) {showBuzz();};
+		}
+	});
+	function showBuzz(){
+		if ($('#buzz').is(":visible")){
+			$('#buzz').hide();
+			$('#abuzz').html("&lt;碎碎念&gt;");
+			var hideBuzz=1;
+		}else{
+			$('#buzz').show();
+			$('#abuzz').html("&lt;收起&gt;");
+			var hideBuzz=0;
+		}
+		if (typeof(Storage) !== "undefined") {
+			localStorage.setItem("rean_topupdate_buzz", hideBuzz);
+		}
+	}
+	</script>
+</head>
+<body>
+	<p>
+		<b>奇迹暖暖关卡顶配分数更新</b> by Rean@<a href="http://aojiaogongluezu.github.io">傲娇攻略组</a><br/>
+		&emsp;部分算法基于 <a href="http://seal100x.github.io/nikkiup2u3/">配装器 by 黑的升华</a><br/>
+		&emsp;微调  by 傲娇攻略组<span id="buzz"><br/>
+		&emsp;碎碎念：为了方便大家使用，工具是开源的，但请考虑到我们编写算法和维护数据的付出，引用或抱走时请保留作者信息。</span>
+		<a href="" onclick="showBuzz();return false;" id="abuzz" class="nobr">&lt;收起&gt;</a><br/>
+	</p>
+	<hr>
+	<p>
+		当前版本：<span id="textBox"></span>
+		<button id="calc" onclick="calctopupd()">计算</button>
+		<span id='alert_msg' class="unwrap"></span>
+	</p>
+		<fieldset>
+		<legend>选项（重新计算生效）</legend>
+		显示<input type="text" id="showCnt" size="2" style="line-height:100%;"/>件高配信息<br>
+		隐藏分差<input type="text" id="showScore" size="5" style="line-height:100%;"/>以下关卡<br>
+		排除名字含有<input type="text" id="exclLevel" size="5" style="line-height:100%;"/>关卡<br>
+		<label><input type="checkbox" id="showNormal" checked />主线</label> <label><input type="checkbox" id="showAlly" checked />联盟</label> <label><input type="checkbox" id="showJJC" />竞技场</label>&emsp;<span id="limitNote" class="normTip">说明</span><br>
+		<!--<input type="checkbox" id="normMode" />均衡权重 <input type="checkbox" id="limitMode" />极限权重<br>-->
+		<label><input type="checkbox" name="staffMode" id="staffMode" onclick="chgStaffMode()">傲娇组员用</label>
+	</fieldset>
+	<hr>
+	<p id='topsearch_note'></p>
+	<span id="staffModeOn">
+	<p id="p_passcode"><input type="password" id="passcode" placeholder="神秘代码"/><a href="" onclick="verify();return false;" class="monkey">&#x1f648;</a></p>
+	<p id="p_content" style="display:none"><button onclick="clear_textarea()">清空</button><br><textarea id="ajglz_out" rows=10 style="width:100%"></textarea></p>
+	</span>
+
+	<span style="display:none">
+	<div class='facet'><!-- for criteria use -->
+		<div class="weightContainer" role="group" data-toggle="buttons">
+			<label class="btn btn-sm btn-default"><input class="filter-radio" type="radio" name="simple" value="1"/> 简约</label>
+			<label class="btn btn-sm btn-default"><input class="filter-radio" type="radio" name="simple" value="-1"/> 华丽</label>
+			<input class="btn-sm" placeholder="权重" type="text" id="simpleWeight" name="simpleWeight" value="1" onChange="changeFilter()" />
+		</div>
+		<div class="weightContainer" role="group" data-toggle="buttons">
+			<label class="btn btn-sm btn-default"><input class="filter-radio" type="radio" name="cute" value="1"/> 可爱</label>
+			<label class="btn btn-sm btn-default"><input class="filter-radio" type="radio" name="cute" value="-1"/> 成熟</label>
+			<input class="btn-sm" placeholder="权重" type="text" id="cuteWeight" name="cuteWeight" value="1" onChange="changeFilter()" />
+		</div>
+		<div class="weightContainer" role="group" data-toggle="buttons">
+			<label class="btn btn-sm btn-default"><input class="filter-radio" type="radio" name="active" value="1"/> 活泼</label>
+			<label class="btn btn-sm btn-default"><input class="filter-radio" type="radio" name="active" value="-1"/> 优雅</label>
+			<input class="btn-sm" placeholder="权重" type="text" id="activeWeight" name="activeWeight" value="1" onChange="changeFilter()" />
+		</div>
+		<div class="weightContainer" role="group" data-toggle="buttons">
+			<label class="btn btn-sm btn-default"><input class="filter-radio" type="radio" name="pure" value="1"/> 清纯</label>
+			<label class="btn btn-sm btn-default"><input class="filter-radio" type="radio" name="pure" value="-1"/> 性感</label>
+			<input class="btn-sm" placeholder="权重" type="text" id="pureWeight" name="pureWeight" value="1" onChange="changeFilter()" />
+		</div>
+		<div class="weightContainer" role="group" data-toggle="buttons">
+			<label class="btn btn-sm btn-default"><input class="filter-radio" type="radio" name="cool" value="1"/> 清凉</label>
+			<label class="btn btn-sm btn-default"><input class="filter-radio" type="radio" name="cool" value="-1"/> 保暖</label>
+			<input class="btn-sm" placeholder="权重" type="text" id="coolWeight" name="coolWeight" value="1" onChange="changeFilter()" />
+		</div>
+		<div class='weightContainer' id = "tag1Container" role="group" data-toggle="buttons">
+			<input class="btn-sm" placeholder="tag1" type="text" id="tag1" name="tag1" onChange="changeFilter()" />
+			<label class="btn btn-sm btn-default active"><input class="filter-radio" type="radio" name="tag1method" value="add" checked/> 加分</label>
+			<label class="btn btn-sm btn-default"><input class="filter-radio" type="radio" name="tag1method" value="replace"/> 替换</label>
+			<select class="btn-sm" id="tag1base" onChange="changeFilter()">
+				<option>SS</option>
+				<option>S</option>
+				<option>A</option>
+				<option>B</option>
+				<option>C</option>
+				<option>F</option>
+			</select>
+			<input class="btn-sm" type="text" id="tag1weight" name="tag1weight" value="1" onChange="changeFilter()" />
+		</div>
+		<div class='weightContainer' id = "tag2Container" role="group" data-toggle="buttons">
+			<input class="btn-sm" placeholder="tag2" type="text" id="tag2" name="tag2" onChange="changeFilter()" />
+			<label class="btn btn-sm btn-default active"><input class="filter-radio" type="radio" name="tag2method" value="add" checked/> 加分</label>
+			<label class="btn btn-sm btn-default"><input class="filter-radio" type="radio" name="tag2method" value="replace"/> 替换</label>
+			<select class="btn-sm" id="tag2base" onChange="changeFilter()">
+				<option>SS</option>
+				<option>S</option>
+				<option>A</option>
+				<option>B</option>
+				<option>C</option>
+				<option>F</option>
+			</select>
+			<input class="btn-sm" type="text" id="tag2weight" name="tag2weight" value="1" onChange="changeFilter()" />
+		</div>
+	</div>
+	</span>
+</body>
+</html>
