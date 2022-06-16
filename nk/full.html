@@ -1,0 +1,177 @@
+<!DOCTYPE HTML>
+<html lang="zh">
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+		<link rel="icon" href="http://reanrean.github.io/index/img/favicon.jpg" type="image/x-icon" />
+		<meta name="renderer" content="webkit">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+		<title>喵呜！</title>
+		<link rel="stylesheet" href="http://reanrean.github.io/nikkis_choice/bootstrap/bootstrap.min.css">
+		<link rel="stylesheet" href="http://reanrean.github.io/nikkis_choice/onekeystrategy.css">
+		<link rel="stylesheet" href="http://reanrean.github.io/nikkis_choice/style.css">
+		<link rel="stylesheet" type="text/css" href="http://reanrean.github.io/nikkis_choice/ui.css">
+		<link rel="stylesheet" type="text/css" href="http://reanrean.github.io/nikkis_choice/mobileui.css" media="only screen and (max-width: 650px)">
+		<script type='text/javascript' charset="UTF-8" src='http://reanrean.github.io/nikkis_choice/jquery.js'></script>
+		<script type='text/javascript' charset="UTF-8" src='http://reanrean.github.io/nikkis_choice/jquery.freezeheader.js'></script>
+		<script type='text/javascript' charset="UTF-8" src="http://reanrean.github.io/nikkis_choice/bootstrap/bootstrap.min.js"></script>
+		<script type='text/javascript' charset="UTF-8" src="http://reanrean.github.io/nikkis_choice/tool.js"></script>
+		<script type='text/javascript' charset="UTF-8" src='http://reanrean.github.io/nikkis_choice/data/wardrobe.js'></script>
+		<script type='text/javascript' charset="UTF-8" src='w.js'></script>
+		<script type='text/javascript' charset="UTF-8" src='f.js'></script>
+		<script type='text/javascript' charset="UTF-8" src='http://reanrean.github.io/nikkis_choice/data/flist.js'></script>
+		<script type='text/javascript' charset="UTF-8" src='http://reanrean.github.io/nikkis_choice/scoring.js'></script>
+		<script type='text/javascript' charset="UTF-8" src='http://reanrean.github.io/nikkis_choice/data/levels.js'></script>
+		<script type='text/javascript' charset="UTF-8" src='l.js'></script>
+		<script type='text/javascript' charset="UTF-8" src='m.js'></script>
+		<script type='text/javascript' charset="UTF-8" src='http://reanrean.github.io/nikkis_choice/data/pattern.js'></script>
+		<script type='text/javascript' charset="UTF-8" src='http://reanrean.github.io/nikkis_choice/onekeystrategy.js'></script>
+		<script type='text/javascript' charset="UTF-8" src='http://reanrean.github.io/nikkis_choice/onekeystrategy_lan.js'></script>
+		<script type='text/javascript' charset="UTF-8" src='http://reanrean.github.io/nikkis_choice/ui.js'></script>
+		<script type='text/javascript' charset="UTF-8" src='http://reanrean.github.io/nikkis_choice/nikki.js'></script>
+		<script type='text/javascript' charset="UTF-8" src='http://reanrean.github.io/nikkis_choice/sha1.js'></script>
+		<script type='text/javascript' charset="UTF-8" src='http://reanrean.github.io/nikkis_choice/top_ajglz.js'></script>
+	</head>
+	<body>
+		<div class='title'>
+			嗷呜～这里可不是谁都能进来的噢！<span id="p_passcode"><a href="" onclick="verify();return false;" style="text-decoration:none">&#x1f648;</a><input type="password" id="passcode" size="6" /></p>
+		</div>
+	<span class="p_content" style="display:none">
+		<div id="StrategyInfo" style="display:none"></div>
+		<div class='top'>
+			<div class="fliter">
+				<div id='filtersTop'>
+					<select id="theme-fliter" onChange="reDrawTheme()"></select><select id="theme" onChange="changeTheme()"></select><button id="onekey" class="btn btn-default">一键攻略</button>
+					<div id="tagInfo"></div>
+					<div id="skillInfo"></div>
+					<div id="categoryFInfo"></div>
+					<div id="hintInfo"></div>
+				</div>
+				<div class="fliter_form_div">
+					<form name="filter_form" class="form-inline">
+						<div class="fliter_form_div_left">
+							<div class='facet'>
+								<div class="weightContainer" role="group" data-toggle="buttons">
+									<label class="btn btn-sm btn-default"><input class="filter-radio" type="radio" name="simple" value="1"/> 简约</label>
+									<label class="btn btn-sm btn-default"><input class="filter-radio" type="radio" name="simple" value="-1"/> 华丽</label>
+									<input class="btn-sm" placeholder="权重" type="text" id="simpleWeight" name="simpleWeight" value="1" onChange="changeFilter()" />
+									<span class="highscore-link btn-sm 1d778" id="simple1d778">微笑+飞吻</span>
+									<span class="highscore-link btn-sm 1d27" id="simple1d27">微笑</span>
+									<span class="highscore-rank btn-sm" id="simplerank"></span>
+								</div>
+								<div class="weightContainer" role="group" data-toggle="buttons">
+									<label class="btn btn-sm btn-default"><input class="filter-radio" type="radio" name="cute" value="1"/> 可爱</label>
+									<label class="btn btn-sm btn-default"><input class="filter-radio" type="radio" name="cute" value="-1"/> 成熟</label>
+									<input class="btn-sm" placeholder="权重" type="text" id="cuteWeight" name="cuteWeight" value="1" onChange="changeFilter()" />
+									<span class="highscore-link btn-sm 1d778" id="cute1d778">微笑+飞吻</span>
+									<span class="highscore-link btn-sm 1d27" id="cute1d27">微笑</span>
+									<span class="highscore-rank btn-sm" id="cuterank"></span>
+								</div>
+								<div class="weightContainer" role="group" data-toggle="buttons">
+									<label class="btn btn-sm btn-default"><input class="filter-radio" type="radio" name="active" value="1"/> 活泼</label>
+									<label class="btn btn-sm btn-default"><input class="filter-radio" type="radio" name="active" value="-1"/> 优雅</label>
+									<input class="btn-sm" placeholder="权重" type="text" id="activeWeight" name="activeWeight" value="1" onChange="changeFilter()" />
+									<span class="highscore-link btn-sm 1d778" id="active1d778">微笑+飞吻</span>
+									<span class="highscore-link btn-sm 1d27" id="active1d27">微笑</span>
+									<span class="highscore-rank btn-sm" id="activerank"></span>
+								</div>
+								<div class="weightContainer" role="group" data-toggle="buttons">
+									<label class="btn btn-sm btn-default"><input class="filter-radio" type="radio" name="pure" value="1"/> 清纯</label>
+									<label class="btn btn-sm btn-default"><input class="filter-radio" type="radio" name="pure" value="-1"/> 性感</label>
+									<input class="btn-sm" placeholder="权重" type="text" id="pureWeight" name="pureWeight" value="1" onChange="changeFilter()" />
+									<span class="highscore-link btn-sm 1d778" id="pure1d778">微笑+飞吻</span>
+									<span class="highscore-link btn-sm 1d27" id="pure1d27">微笑</span>
+									<span class="highscore-rank btn-sm" id="purerank"></span>
+								</div>
+								<div class="weightContainer" role="group" data-toggle="buttons">
+									<label class="btn btn-sm btn-default"><input class="filter-radio" type="radio" name="cool" value="1"/> 清凉</label>
+									<label class="btn btn-sm btn-default"><input class="filter-radio" type="radio" name="cool" value="-1"/> 保暖</label>
+									<input class="btn-sm" placeholder="权重" type="text" id="coolWeight" name="coolWeight" value="1" onChange="changeFilter()" />
+									<span class="highscore-link btn-sm 1d778" id="cool1d778">微笑+飞吻</span>
+									<span class="highscore-link btn-sm 1d27" id="cool1d27">微笑</span>
+									<span class="highscore-rank btn-sm" id="coolrank"></span>
+								</div>
+								<div class='weightContainer' id = "tag1Container" role="group" data-toggle="buttons">
+									<input class="btn-sm" placeholder="tag1" type="text" id="tag1" name="tag1" onChange="changeFilter()" />
+									<label class="btn btn-sm btn-default active"><input class="filter-radio" type="radio" name="tag1method" value="add" checked/> 加分</label>
+									<label class="btn btn-sm btn-default"><input class="filter-radio" type="radio" name="tag1method" value="replace"/> 替换</label>
+									<select class="btn-sm" id="tag1base" onChange="changeFilter()">
+										<option>SS</option>
+										<option>S</option>
+										<option>A</option>
+										<option>B</option>
+										<option>C</option>
+										<option>F</option>
+									</select>
+									<input class="btn-sm" type="text" id="tag1weight" name="tag1weight" value="1" onChange="changeFilter()" />
+								</div>
+								<div class='weightContainer' id = "tag2Container" role="group" data-toggle="buttons">
+									<input class="btn-sm" placeholder="tag2" type="text" id="tag2" name="tag2" onChange="changeFilter()" />
+									<label class="btn btn-sm btn-default active"><input class="filter-radio" type="radio" name="tag2method" value="add" checked/> 加分</label>
+									<label class="btn btn-sm btn-default"><input class="filter-radio" type="radio" name="tag2method" value="replace"/> 替换</label>
+									<select class="btn-sm" id="tag2base" onChange="changeFilter()">
+										<option>SS</option>
+										<option>S</option>
+										<option>A</option>
+										<option>B</option>
+										<option>C</option>
+										<option>F</option>
+									</select>
+									<input class="btn-sm" type="text" id="tag2weight" name="tag2weight" value="1" onChange="changeFilter()" />
+								</div>
+							</div><!-- facet -->
+							<div class="fliter_option clear">
+								<div class="checkbox"><label><input type="checkbox" class="fliter" value="own" checked /> 拥有<span id='inventoryCount'/></label></div>
+								<div class="checkbox"><label><input type="checkbox" class="fliter" value="missing" checked /> 没有</label></div>
+								<div class="checkbox"><label><input type="checkbox" id="searchResultCheck" onclick="toggleSearchResult()" /> 搜索</label></div>
+								<a href="#" class = "showmore" style="display:inline-block;cursor:pointer">↓显示全部衣服↓</a>
+							</div><!-- fliter_option -->
+						</div>
+						<div class="fliter_form_div_right">
+							<fieldset>
+								<legend>高级选项</legend>
+								<div class="checkbox"><label><input type="checkbox" class="fliter" value="sortbyscore" /> 饰品分数/id排序</label></div>
+								<div class="checkbox"><label><input type="checkbox" class="fliter" value="balance" /> 均衡权重</label></div>
+								<div class="checkbox"><label><input type="checkbox" class="fliter" value="highscore" /> 高分权重</label></div>
+								<div class="checkbox"><label><input type="checkbox" class="fliter" value="acc9" /> 9件饰品</label></div>
+								<div class="checkbox"><label><input type="checkbox" class="fliter" value="toulan" /> 偷懒模式</label></div>
+								<div class="checkbox"><label><input type="checkbox" class="fliter" value="byCategoryAndId" /> 上回试穿排序</label></div>
+							</fieldset>
+						</div>
+					</form>
+				</div><!-- fliter_form_div -->
+			</div><!-- fliter -->
+		</div><!-- top -->
+		<hr>
+		<div id = 'searchResult'>
+			<button id="searchResultSource" class="btn btn-sm btn-cust btn-success" onclick="searchResultSource()">名称</button>&nbsp;<input type="text" id="searchResultInput" placeholder="输入名字搜索" /><button class="btn btn-default btn-sm" onclick="searchResult()">GO</button><button class="btn btn-default btn-sm" id="searchResultMode">衣柜</button>
+			<div id='searchResultList' width="100%"></div>
+		<hr>
+		</div>
+		<div id = 'shoppingCartContainer'>
+			-推荐穿戴部件-
+			<button class="btn btn-default" style="float:right" onclick="clearShoppingCart()">清空</button>
+			<div id='shoppingCart' class="table"></div>
+		</div>
+		<hr>
+		<div id = 'category_container'></div>
+		<div id = "clothes" class="table"></div>
+		<div class = "showmore" id= "showmore" isshowmore="1">↓显示全部衣服↓</div>
+		<div id = "end"></div>
+	<hr>
+		<p>-导入批量衣服-</p>
+		<div id = "import">
+			<select id="importCate" onChange="clearImport()" ></select><br/>
+			<textarea id="importData" rows=5 style="width:60%" ></textarea>
+			<button onClick="doImport()">导入</button>
+		</div>
+	<hr>
+		<p>-我拥有的服装-<br/>
+		<span id='wardrobe_cnt'></span></p>
+		<textarea id="myClothes" rows=10 style="width:60%"></textarea><br/>
+		<button onClick="loadCustomInventory()">Update</button>
+	<hr>
+	<br><br><br><br><br>
+	</span>
+	</body>
+</html>
