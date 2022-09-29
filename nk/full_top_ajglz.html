@@ -1,0 +1,121 @@
+<!DOCTYPE HTML>
+<html lang="zh">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+	<link rel="icon" href="http://reanrean.github.io/index/img/favicon.jpg" type="image/x-icon" />
+	<meta name="renderer" content="webkit">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+	<title>喵呜！跑顶配。新</title>
+	<link rel="stylesheet" href="http://reanrean.github.io/nikkis_choice/bootstrap/bootstrap.min.css">
+	<script type='text/javascript' charset="UTF-8" src='http://reanrean.github.io/nikkis_choice/jquery.js'></script>
+	<script type='text/javascript' charset="UTF-8" src='http://reanrean.github.io/nikkis_choice/jszip.min.js'></script>
+	<script type='text/javascript' charset="UTF-8" src='http://reanrean.github.io/nikkis_choice/tool.js'></script>
+	<script type='text/javascript' charset="UTF-8" src='http://reanrean.github.io/nikkis_choice/data/wardrobe.js'></script>
+	<script type='text/javascript' charset="UTF-8" src='http://reanrean.github.io/dev-site/nk/w.js'></script>
+	<script type='text/javascript' charset="UTF-8">
+		var wardrobe_2 = [
+		//['名字','分类','编号','心级','华丽','简约','优雅','活泼','成熟','可爱','性感','清纯','清凉','保暖','tag1/tag2','获取来源','套装','版本','简写'],
+		];
+		var wardrobe = function() {
+			var ret = wardrobe;
+			for (var i in wardrobe_2) ret.push(wardrobe_2[i]);
+			return ret;
+		}();
+	</script>
+	<script type='text/javascript' charset="UTF-8" src='http://reanrean.github.io/nikkis_choice/scoring.js'></script>
+	<script type='text/javascript' charset="UTF-8" src='f.js'></script>
+	<script type='text/javascript' charset="UTF-8" src='http://reanrean.github.io/nikkis_choice/data/flist.js'></script>
+	<script type='text/javascript' charset="UTF-8" src='http://reanrean.github.io/nikkis_choice/model.js'></script>
+	<script type='text/javascript' charset="UTF-8" src='http://reanrean.github.io/nikkis_choice/data/merchant.js'></script>
+	<script type='text/javascript' charset="UTF-8" src='http://reanrean.github.io/nikkis_choice/data/construct.js'></script>
+	<script type='text/javascript' charset="UTF-8" src='http://reanrean.github.io/nikkis_choice/data/levels.js'></script>
+	<script type='text/javascript' charset="UTF-8" src='l.js'></script>
+	<script type='text/javascript' charset="UTF-8" src='m.js'></script>
+	<script type='text/javascript' charset="UTF-8" src='http://reanrean.github.io/nikkis_choice/top.js'></script>
+	<script type='text/javascript' charset="UTF-8" src='http://reanrean.github.io/nikkis_choice/top_ajglz.js'></script>
+	<script type='text/javascript' charset="UTF-8" src='ta.js'></script>
+	<script type='text/javascript' charset="UTF-8" src='http://reanrean.github.io/nikkis_choice/data/setcategory.js'></script>
+	<script type='text/javascript' charset="UTF-8" src='http://reanrean.github.io/nikkis_choice/data/top_ajglz_modules.js'></script>
+	<script type='text/javascript' charset="UTF-8">
+		var modules_top_2 = [
+/*['最新活动','柔粉季节',1,'柔粉季节',''],
+['联盟凝砂','猎心游戏',1,'猎心游戏',''],
+['往期活动(节日)','上元灯花宴',1,'上元灯花宴',''],
+['往期活动(节日)','相守之翼',1,'相守之翼',''],
+['往期活动(节日)','倾心之羽',1,'倾心之羽',''],
+['往期活动(登录)','猪猪包子铺',1,'猪猪包子铺',''],
+['往期活动(登录)','福猫抱鲤',0,'!福猫抱鲤','名称'],*/
+		];
+		var modules_top = function() {
+			var ret = modules_top;
+			for (var i in modules_top_2) ret.unshift(modules_top_2[i]);
+			return ret;
+		}();
+	</script>
+	<script type='text/javascript' charset="UTF-8" src='http://reanrean.github.io/nikkis_choice/download.js'></script>
+</head>
+<body>
+	<p><button onclick="genLimit()">先看极限</button></p>
+	<span id="init">
+	<!-- top_ajglz.js -->
+	</span>
+	<span style="display:none">
+	<div class='facet'><!-- for criteria use -->
+		<div class="weightContainer" role="group" data-toggle="buttons">
+			<label class="btn btn-sm btn-default"><input class="filter-radio" type="radio" name="simple" value="1"/> 简约</label>
+			<label class="btn btn-sm btn-default"><input class="filter-radio" type="radio" name="simple" value="-1"/> 华丽</label>
+			<input class="btn-sm" placeholder="权重" type="text" id="simpleWeight" name="simpleWeight" value="1" onChange="changeFilter()" />
+		</div>
+		<div class="weightContainer" role="group" data-toggle="buttons">
+			<label class="btn btn-sm btn-default"><input class="filter-radio" type="radio" name="cute" value="1"/> 可爱</label>
+			<label class="btn btn-sm btn-default"><input class="filter-radio" type="radio" name="cute" value="-1"/> 成熟</label>
+			<input class="btn-sm" placeholder="权重" type="text" id="cuteWeight" name="cuteWeight" value="1" onChange="changeFilter()" />
+		</div>
+		<div class="weightContainer" role="group" data-toggle="buttons">
+			<label class="btn btn-sm btn-default"><input class="filter-radio" type="radio" name="active" value="1"/> 活泼</label>
+			<label class="btn btn-sm btn-default"><input class="filter-radio" type="radio" name="active" value="-1"/> 优雅</label>
+			<input class="btn-sm" placeholder="权重" type="text" id="activeWeight" name="activeWeight" value="1" onChange="changeFilter()" />
+		</div>
+		<div class="weightContainer" role="group" data-toggle="buttons">
+			<label class="btn btn-sm btn-default"><input class="filter-radio" type="radio" name="pure" value="1"/> 清纯</label>
+			<label class="btn btn-sm btn-default"><input class="filter-radio" type="radio" name="pure" value="-1"/> 性感</label>
+			<input class="btn-sm" placeholder="权重" type="text" id="pureWeight" name="pureWeight" value="1" onChange="changeFilter()" />
+		</div>
+		<div class="weightContainer" role="group" data-toggle="buttons">
+			<label class="btn btn-sm btn-default"><input class="filter-radio" type="radio" name="cool" value="1"/> 清凉</label>
+			<label class="btn btn-sm btn-default"><input class="filter-radio" type="radio" name="cool" value="-1"/> 保暖</label>
+			<input class="btn-sm" placeholder="权重" type="text" id="coolWeight" name="coolWeight" value="1" onChange="changeFilter()" />
+		</div>
+		<div class='weightContainer' id = "tag1Container" role="group" data-toggle="buttons">
+			<input class="btn-sm" placeholder="tag1" type="text" id="tag1" name="tag1" onChange="changeFilter()" />
+			<label class="btn btn-sm btn-default active"><input class="filter-radio" type="radio" name="tag1method" value="add" checked/> 加分</label>
+			<label class="btn btn-sm btn-default"><input class="filter-radio" type="radio" name="tag1method" value="replace"/> 替换</label>
+			<select class="btn-sm" id="tag1base" onChange="changeFilter()">
+				<option>SS</option>
+				<option>S</option>
+				<option>A</option>
+				<option>B</option>
+				<option>C</option>
+				<option>F</option>
+			</select>
+			<input class="btn-sm" type="text" id="tag1weight" name="tag1weight" value="1" onChange="changeFilter()" />
+		</div>
+		<div class='weightContainer' id = "tag2Container" role="group" data-toggle="buttons">
+			<input class="btn-sm" placeholder="tag2" type="text" id="tag2" name="tag2" onChange="changeFilter()" />
+			<label class="btn btn-sm btn-default active"><input class="filter-radio" type="radio" name="tag2method" value="add" checked/> 加分</label>
+			<label class="btn btn-sm btn-default"><input class="filter-radio" type="radio" name="tag2method" value="replace"/> 替换</label>
+			<select class="btn-sm" id="tag2base" onChange="changeFilter()">
+				<option>SS</option>
+				<option>S</option>
+				<option>A</option>
+				<option>B</option>
+				<option>C</option>
+				<option>F</option>
+			</select>
+			<input class="btn-sm" type="text" id="tag2weight" name="tag2weight" value="1" onChange="changeFilter()" />
+		</div>
+	</div>
+	</span>
+</body>
+</html>
