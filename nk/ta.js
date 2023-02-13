@@ -1,4 +1,5 @@
 $(document).ready(function () {
+	$('#wardrobe_cnt').html('衣柜数据更新日期：'+wardrobe_lastupd);
 	$('#init').hide();
 });
 
