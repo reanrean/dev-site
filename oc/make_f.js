@@ -14,6 +14,8 @@ const csvFile = files.find(f => f.endsWith('.csv'));
 if (!csvFile) { console.error('Error: No .csv file found in current directory.'); process.exit(1); }
 const guildCsvPath = path.join(cwd, csvFile);
 
+const withLevels = process.argv.includes('--l');
+
 const outputPathF = path.join(cwd, 'f.js');
 const outputPathNK = path.join(cwd, 'levels_nk.txt');
 const outputPathSeal = path.join(cwd, 'levels_seal.txt');
@@ -177,7 +179,12 @@ try {
     fs.writeFileSync(outputPathF, fOutput.replace(/\r\n/g, '\n'));
     console.log(`=> f.js written to ${outputPathF}`);
 
-    // ========== STEP 6: Generate levels snippets ==========
+    // ========== STEP 6: Generate levels snippets (only with --l) ==========
+    if (!withLevels) {
+        console.log('Done. (use --l to also generate levels snippets)');
+        process.exit(0);
+    }
+
     let nkRaw = '';
     let nkBonus = '';
     let sealRaw = '';
