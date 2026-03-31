@@ -551,7 +551,7 @@ if (arenaLines) {
     const ppIdx = merchantContent.indexOf('var patternPrice=');
     if (ppIdx >= 0) {
         const ppEnd = findArrayEnd(merchantContent, ppIdx);
-        const newPP = 'var patternPrice=[\n//mainType, id, price, haveDiscount, isOld, version\n' + arenaLines.join('\n') + '\n];';
+        const newPP = 'var patternPrice=[\n//mainType, id, price, haveDiscount, isOld, version\n' + arenaLines.join('\n') + '\n];\n';
         merchantContent = merchantContent.substring(0, ppIdx) + newPP + merchantContent.substring(ppEnd);
         console.log(`Arena/patternPrice: ${arenaLines.length} entries`);
     } else {
