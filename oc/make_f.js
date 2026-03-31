@@ -17,8 +17,10 @@ const guildCsvPath = path.join(cwd, csvFile);
 const withLevels = process.argv.includes('--l');
 
 const outputPathF = path.join(cwd, '..', 'nk', 'f.js');
-const outputPathNK = path.join(cwd, 'levels_nk.txt');
-const outputPathSeal = path.join(cwd, 'levels_seal.txt');
+const outputDir = path.join(cwd, 'output');
+const outputPathNK = path.join(outputDir, 'levels_nk.txt');
+const outputPathSeal = path.join(outputDir, 'levels_seal.txt');
+if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
 // --- HELPER: Extract level name (X) from 关卡属性 col3 ---
 function extractLevelName(a) {
@@ -210,7 +212,7 @@ try {
         const s4 = style4 === '清纯' ? 1 : -1;
         const s5 = style5 === '清凉' ? 1 : -1;
 
-        const raw = [s1*val1/15, s3*val3/15, s2*val2/15, s4*val4/15, s5*val5/15];
+        const raw = [s1 * val1 / 15, s3 * val3 / 15, s2 * val2 / 15, s4 * val4 / 15, s5 * val5 / 15];
 
         nkRaw += `'${levelName}':[${raw.map(fmtNK).join(',')}],\n`;
         sealRaw += `  '${levelName}': [${raw.map(fmtSeal).join(', ')}],\n`;
@@ -225,8 +227,8 @@ try {
         }
 
         let regSkills = [];
-        if (i > 1 && levelSheet[i-1][0] === id - 1) {
-            regSkills = [levelSheet[i-1][22], levelSheet[i-1][23], levelSheet[i-1][24], levelSheet[i-1][25]]
+        if (i > 1 && levelSheet[i - 1][0] === id - 1) {
+            regSkills = [levelSheet[i - 1][22], levelSheet[i - 1][23], levelSheet[i - 1][24], levelSheet[i - 1][25]]
                 .map(v => v || '').filter(v => v.trim() !== '');
         }
         let advSkills = [row[22], row[23], row[24], row[25]]
@@ -255,7 +257,7 @@ try {
         const s2 = style2 === '活泼' ? 1 : -1;
         const s4 = style4 === '清纯' ? 1 : -1;
         const s5 = style5 === '清凉' ? 1 : -1;
-        const raw = [s1*val1/15, s3*val3/15, s2*val2/15, s4*val4/15, s5*val5/15];
+        const raw = [s1 * val1 / 15, s3 * val3 / 15, s2 * val2 / 15, s4 * val4 / 15, s5 * val5 / 15];
 
         nkGuildRaw += `'${levelName}':[${raw.map(fmtNK).join(',')}],\n`;
         sealGuildRaw += `  '${levelName}': [${raw.map(fmtSeal).join(', ')}],\n`;

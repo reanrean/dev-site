@@ -3,5 +3,3 @@ node_modules/
 output/
 *.xlsm
 *.csv
-levels_nk.txt
-levels_seal.txt
