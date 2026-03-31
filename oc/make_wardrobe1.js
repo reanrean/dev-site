@@ -17,9 +17,10 @@ function luaPath(filename) {
     return fs.existsSync(p) ? p : null;
 }
 
-// --- CSV input / Output ---
-const csvPath = path.join(cwd, 'input', '1280.csv');
-if (!fs.existsSync(csvPath)) { console.error('Error: input/1280.csv not found.'); process.exit(1); }
+// --- CSV input (all .csv files in input/) / Output ---
+const inputDir = path.join(cwd, 'input');
+const csvFiles = fs.existsSync(inputDir) ? fs.readdirSync(inputDir).filter(f => f.endsWith('.csv')).sort() : [];
+if (csvFiles.length === 0) { console.error('Error: No .csv files found in input/'); process.exit(1); }
 const outputPath = path.join(cwd, 'output', 'wardrobe1_lines.txt');
 
 // --- Game ID -> nikkis_choice item number ---
@@ -315,7 +316,7 @@ function resolveTaskDrop(itemId, abbrev) {
 }
 
 // === Generate wardrobe1 line ===
-function generateLine(idx, source, abbrev, suitName) {
+function generateLine(idx, source, abbrev, suitName, version) {
     const row = clothesData[idx];
     const id = row[0];
     const depthType = row[4];
@@ -337,7 +338,7 @@ function generateLine(idx, source, abbrev, suitName) {
     const tag2Name = special2 ? (tagMap[special2] || '') : '';
     const tagStr = [tag1Name, tag2Name].filter(Boolean).join('/');
     const yizhi = amputationSet.has(id) ? '1' : '';
-    const line = `  ['${row[1]}','${displayCat}','${itemNo}','${rare}','${grades[0]}','${grades[1]}','${grades[2]}','${grades[3]}','${grades[4]}','${grades[5]}','${grades[6]}','${grades[7]}','${grades[8]}','${grades[9]}','${tagStr}','${source}','${suitName || ''}','V12.8.0','${abbrev}','${yizhi}'],`;
+    const line = `  ['${row[1]}','${displayCat}','${itemNo}','${rare}','${grades[0]}','${grades[1]}','${grades[2]}','${grades[3]}','${grades[4]}','${grades[5]}','${grades[6]}','${grades[7]}','${grades[8]}','${grades[9]}','${tagStr}','${source}','${suitName || ''}','${version}','${abbrev}','${yizhi}'],`;
     return { id, line, itemNo };
 }
 
@@ -346,7 +347,7 @@ function generateLine(idx, source, abbrev, suitName) {
 // For each emitted item, also emit its dye variants immediately (so dyes inherit correct abbrev).
 // base gets the original source (resolved to task drop if 公/少), others get 设·进<prevItemNo>
 // suitName: base+intermediate get suitName·基, top (the original item) gets suitName
-function emitWithEvolution(itemId, source, abbrev, suitName, results, errors, emittedDyes) {
+function emitWithEvolution(itemId, source, abbrev, suitName, version, results, errors, emittedDyes) {
     const chain = getEvoChain(itemId);
 
     // Helper: emit dyes for a given item after it's been emitted
@@ -358,7 +359,8 @@ function emitWithEvolution(itemId, source, abbrev, suitName, results, errors, em
             emittedDyes.add(dyeId);
             const dIdx = idMap[dyeId];
             if (!dIdx) { errors.push(`Dye ID ${dyeId} not found`); continue; }
-            const r = generateLine(dIdx, `设·定${itemNo}`, `定·${itemAbbrev}`, `${suitNameForDye}·染`);
+            const dyeSuitName = suitNameForDye ? `${suitNameForDye}·染` : '';
+            const r = generateLine(dIdx, `设·定${itemNo}`, `定·${itemAbbrev}`, dyeSuitName, version);
             if (r.error) { errors.push(r.error); continue; }
             results.push(r);
         }
@@ -373,11 +375,11 @@ function emitWithEvolution(itemId, source, abbrev, suitName, results, errors, em
             const drop = resolveTaskDrop(itemId, abbrev);
             if (drop) finalSource = drop;
         }
-        const r = generateLine(idx, finalSource, abbrev, suitName);
+        const r = generateLine(idx, finalSource, abbrev, suitName, version);
         if (r.error) { errors.push(r.error); return; }
         results.push(r);
         // Emit dyes for this item
-        if (suitName) emitDyesFor(itemId, r.itemNo, abbrev, suitName);
+        emitDyesFor(itemId, r.itemNo, abbrev, suitName);
         return;
     }
 
@@ -411,78 +413,81 @@ function emitWithEvolution(itemId, source, abbrev, suitName, results, errors, em
             itemAbbrev = `进·${abbrev}`;
         }
 
-        const r = generateLine(idx, itemSource, itemAbbrev, itemSuit);
+        const r = generateLine(idx, itemSource, itemAbbrev, itemSuit, version);
         if (r.error) { errors.push(r.error); continue; }
         results.push(r);
         // Emit dyes for this evo step (inherits correct itemAbbrev)
-        if (suitName) emitDyesFor(cid, r.itemNo, itemAbbrev, suitName);
+        emitDyesFor(cid, r.itemNo, itemAbbrev, suitName);
     }
 }
 
-// === Read CSV & process ===
-const csvContent = fs.readFileSync(csvPath, 'utf8').replace(/^\uFEFF/, '');
-const csvLines = csvContent.trim().split('\n');
-console.log(`CSV: ${csvLines.length} lines`);
-
+// === Read CSV(s) & process ===
 const results = [], errors = [], warnings = [];
 
-for (const line of csvLines) {
-    const parts = line.trim().split(',');
-    if (parts.length < 3) { errors.push(`Skipping invalid line: ${line}`); continue; }
-    const isSuit = parts[0].trim() === '1';
-    const itemName = parts[1].trim();
-    const source = parts[2].trim();
-    const abbrev = parts[3] ? parts[3].trim() : '';
-    if (!itemName) continue;
+for (const csvFile of csvFiles) {
+    const version = path.basename(csvFile, '.csv'); // filename without .csv = version
+    const csvFullPath = path.join(inputDir, csvFile);
+    const csvContent = fs.readFileSync(csvFullPath, 'utf8').replace(/^\uFEFF/, '');
+    const csvLines = csvContent.trim().split('\n').filter(l => l.trim());
+    console.log(`CSV: ${csvFile} (${version}) - ${csvLines.length} lines`);
 
-    if (!isSuit) {
-        // === Loose item (散件) ===
-        const indices = nameMap[itemName];
-        if (!indices || indices.length === 0) { errors.push(`NOT FOUND: "${itemName}"`); continue; }
-        for (const idx of indices) {
-            const id = clothesData[idx][0];
-            emitWithEvolution(id, source, abbrev, '', results, errors, new Set());
-        }
-    } else {
-        // === Suit (套装) ===
-        const suit = suitMap[itemName];
-        if (!suit) { errors.push(`SUIT NOT FOUND in lua: "${itemName}"`); continue; }
+    for (const line of csvLines) {
+        const parts = line.trim().split(',');
+        if (parts.length < 3) { errors.push(`Skipping invalid line: ${line}`); continue; }
+        const isSuit = parts[0].trim() === '1';
+        const itemName = parts[1].trim();
+        const source = parts[2].trim();
+        const abbrev = parts[3] ? parts[3].trim() : '';
+        if (!itemName) continue;
 
-        const allBaseClothes = new Set(suit.clothes);
-        const allRewardClothes = new Set(suit.rewardClothes);
-        const emittedDyes = new Set(); // track dyes emitted inline by emitWithEvolution
+        if (!isSuit) {
+            // === Loose item (散件) ===
+            const indices = nameMap[itemName];
+            if (!indices || indices.length === 0) { errors.push(`NOT FOUND: "${itemName}"`); continue; }
+            for (const idx of indices) {
+                const id = clothesData[idx][0];
+                emitWithEvolution(id, source, abbrev, '', version, results, errors, new Set());
+            }
+        } else {
+            // === Suit (套装) ===
+            const suit = suitMap[itemName];
+            if (!suit) { errors.push(`SUIT NOT FOUND in lua: "${itemName}"`); continue; }
 
-        // --- 1. Base suit clothes (with evolution expansion + inline dyes) ---
-        for (const clothId of suit.clothes) {
-            emitWithEvolution(clothId, source, abbrev, itemName, results, errors, emittedDyes);
-        }
+            const allBaseClothes = new Set(suit.clothes);
+            const allRewardClothes = new Set(suit.rewardClothes);
+            const emittedDyes = new Set();
 
-        // --- 2. Reward clothes (with evolution expansion + inline dyes) ---
-        for (const rewardId of suit.rewardClothes) {
-            emitWithEvolution(rewardId, `套装·${itemName}`, `套·${abbrev}`, `${itemName}·套`, results, errors, emittedDyes);
-        }
+            // --- 1. Base suit clothes (with evolution expansion + inline dyes) ---
+            for (const clothId of suit.clothes) {
+                emitWithEvolution(clothId, source, abbrev, itemName, version, results, errors, emittedDyes);
+            }
 
-        // --- 3. Check suit_convert for extras ---
-        const suitConvertClothes = new Set();
-        const suitDyeVariants = suitDyes[suit.id];
-        if (suitDyeVariants) { for (const v of suitDyeVariants) for (const cid of v) suitConvertClothes.add(cid); }
+            // --- 2. Reward clothes (with evolution expansion + inline dyes) ---
+            for (const rewardId of suit.rewardClothes) {
+                emitWithEvolution(rewardId, `套装·${itemName}`, `套·${abbrev}`, `${itemName}·套`, version, results, errors, emittedDyes);
+            }
 
-        // Build allKnown: base clothes + evo chains + reward clothes + evo chains + emitted dyes
-        const allKnown = new Set([...allBaseClothes, ...allRewardClothes, ...emittedDyes]);
-        for (const cid of [...allBaseClothes, ...allRewardClothes]) {
-            for (const ecid of getEvoChain(cid)) allKnown.add(ecid);
-        }
-        const extraFromConvert = [];
-        for (const cid of suitConvertClothes) { if (!allKnown.has(cid)) extraFromConvert.push(cid); }
+            // --- 3. Check suit_convert for extras ---
+            const suitConvertClothes = new Set();
+            const suitDyeVariants = suitDyes[suit.id];
+            if (suitDyeVariants) { for (const v of suitDyeVariants) for (const cid of v) suitConvertClothes.add(cid); }
 
-        if (extraFromConvert.length > 0) {
-            warnings.push(`suit_convert has ${extraFromConvert.length} extra items for "${itemName}": ${extraFromConvert.join(', ')}`);
-            for (const extraId of extraFromConvert) {
-                const idx = idMap[extraId];
-                if (!idx) { errors.push(`Extra suit_convert ID ${extraId} not found (suit: ${itemName})`); continue; }
-                const r = generateLine(idx, '', '', `${itemName}·染`);
-                if (r.error) { errors.push(r.error); continue; }
-                results.push(r);
+            const allKnown = new Set([...allBaseClothes, ...allRewardClothes, ...emittedDyes]);
+            for (const cid of [...allBaseClothes, ...allRewardClothes]) {
+                for (const ecid of getEvoChain(cid)) allKnown.add(ecid);
+            }
+            const extraFromConvert = [];
+            for (const cid of suitConvertClothes) { if (!allKnown.has(cid)) extraFromConvert.push(cid); }
+
+            if (extraFromConvert.length > 0) {
+                warnings.push(`suit_convert has ${extraFromConvert.length} extra items for "${itemName}": ${extraFromConvert.join(', ')}`);
+                for (const extraId of extraFromConvert) {
+                    const idx = idMap[extraId];
+                    if (!idx) { errors.push(`Extra suit_convert ID ${extraId} not found (suit: ${itemName})`); continue; }
+                    const r = generateLine(idx, '', '', `${itemName}·染`, version);
+                    if (r.error) { errors.push(r.error); continue; }
+                    results.push(r);
+                }
             }
         }
     }
