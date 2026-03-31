@@ -1,5 +1,6 @@
 node_modules/
 *lua*/
+output/
 *.xlsm
 *.csv
 levels_nk.txt
