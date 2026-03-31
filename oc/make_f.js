@@ -6,17 +6,17 @@ const xlsx = require('xlsx');
 const cwd = __dirname;
 const files = fs.readdirSync(cwd);
 
-const xlsmFile = files.find(f => f.endsWith('.xlsm'));
+const xlsmFile = files.filter(f => f.endsWith('.xlsm')).sort().reverse()[0];
 if (!xlsmFile) { console.error('Error: No .xlsm file found in current directory.'); process.exit(1); }
 const excelPath = path.join(cwd, xlsmFile);
 
-const csvFile = files.find(f => f.endsWith('.csv'));
+const csvFile = files.filter(f => f.endsWith('.csv')).sort().reverse()[0];
 if (!csvFile) { console.error('Error: No .csv file found in current directory.'); process.exit(1); }
 const guildCsvPath = path.join(cwd, csvFile);
 
 const withLevels = process.argv.includes('--l');
 
-const outputPathF = path.join(cwd, 'f.js');
+const outputPathF = path.join(cwd, '..', 'nk', 'f.js');
 const outputPathNK = path.join(cwd, 'levels_nk.txt');
 const outputPathSeal = path.join(cwd, 'levels_seal.txt');
 

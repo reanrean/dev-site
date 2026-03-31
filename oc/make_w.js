@@ -6,11 +6,11 @@ const xlsx = require('xlsx');
 const cwd = __dirname;
 const files = fs.readdirSync(cwd);
 
-const xlsmFile = files.find(f => f.endsWith('.xlsm'));
+const xlsmFile = files.filter(f => f.endsWith('.xlsm')).sort().reverse()[0];
 if (!xlsmFile) { console.error('Error: No .xlsm file found in current directory.'); process.exit(1); }
 const excelPath = path.join(cwd, xlsmFile);
 
-const outputPath = path.join(cwd, 'w.js');
+const outputPath = path.join(cwd, '..', 'nk', 'w.js');
 
 // --- Category to w.js type number ---
 function catToType(cat) {
