@@ -20,6 +20,7 @@ const outputPathF = path.join(cwd, '..', 'nk', 'f.js');
 const outputDir = path.join(cwd, 'output');
 const outputPathNK = path.join(outputDir, 'levels_nk.txt');
 const outputPathSeal = path.join(outputDir, 'levels_seal.txt');
+const outputPathFlist = path.join(outputDir, 'flist.txt');
 if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
 // --- HELPER: Extract level name (X) from 关卡属性 col3 ---
@@ -52,6 +53,39 @@ function fKey(levelName) {
     const first = levelName[0];
     if (/\d/.test(first) || first === 'I') return '关卡: ' + levelName;
     return levelName;
+}
+
+// --- UID to main clothing type (same logic as make_data.js convertType / uidToTypeId) ---
+// Canonical type order — subtypes listed after their parent so they sort stably
+// (any unrecognised subtype falls through to the end via the fallback loop)
+const TYPE_ORDER = [
+    '发型',
+    '连衣裙', '外套', '上装', '下装',
+    '袜子-袜子', '袜子-袜套',
+    '鞋子',
+    '饰品-头饰·发型', '饰品-头饰·发饰', '饰品-头饰·发卡', '饰品-头饰·头纱',
+    '饰品-耳饰',
+    '饰品-手持·左', '饰品-手持·右', '饰品-手持·双',
+    '饰品-腰饰', '饰品-颈饰', '饰品-胸饰', '饰品-背饰',
+    '饰品',
+    '妆容',
+];
+function uidMainType(uid) {
+    const s = String(uid);
+    const mainId = s.substring(0, s.length - 4);
+    switch (mainId) {
+        case '1':  return '发型';
+        case '2':  return '连衣裙';
+        case '3':  return '外套';
+        case '4':  return '上装';
+        case '5':  return '下装';
+        case '6':  return '袜子';
+        case '7':  return '鞋子';
+        case '8':  return '饰品';
+        case '9':  return '妆容';
+        case '18': return '饰品';
+        default:   return '';
+    }
 }
 
 // --- Number formatting helpers ---
@@ -87,6 +121,45 @@ try {
     // ========== STEP 2: 联盟属性 ==========
     const guildSheet = xlsx.utils.sheet_to_json(wb.Sheets['联盟属性'], { header: 1 });
     console.log(`Loaded ${guildSheet.length - 1} guild levels from 联盟属性`);
+
+    // ========== STEP 2.5: Build depthType → display category from 参数表 + clothes_data ==========
+    // Mirrors make_wardrobe1.js: 参数表 cols H(7)/I(8)/J(9), clothes_data col E(4)
+    const depthTypeMap = {};      // depthType -> main category (e.g. '饰品', '袜子')
+    const depthTypeToSubtype = {}; // depthType -> subtype string (e.g. '头饰*发饰', '袜套')
+    const ps = wb.Sheets['参数表'];
+    if (ps) {
+        for (let r = 0; r < 500; r++) {
+            const h = ps[xlsx.utils.encode_cell({ r, c: 7 })];
+            const i = ps[xlsx.utils.encode_cell({ r, c: 8 })];
+            const j = ps[xlsx.utils.encode_cell({ r, c: 9 })];
+            if (!h) break;
+            if (i) depthTypeMap[h.v] = i.v;
+            if (j) depthTypeToSubtype[h.v] = j.v;
+        }
+    }
+    const idToDepthType = {}; // game item ID -> depthType
+    const clothesDataSheet = xlsx.utils.sheet_to_json(wb.Sheets['clothes_data'], { header: 1 });
+    for (let i = 1; i < clothesDataSheet.length; i++) {
+        const gameId = clothesDataSheet[i][0];
+        const dt = clothesDataSheet[i][4];
+        if (gameId != null && dt != null) idToDepthType[gameId] = dt;
+    }
+    console.log(`参数表: ${Object.keys(depthTypeMap).length} depthTypes, clothes_data: ${Object.keys(idToDepthType).length} items`);
+
+    // Same logic as make_wardrobe1.js getWardrobe1Category
+    function getDisplayCategory(uid) {
+        const dt = idToDepthType[Number(uid)];
+        if (dt != null) {
+            const cat = depthTypeMap[dt];
+            if (cat) {
+                const sub = depthTypeToSubtype[dt];
+                if (cat === '袜子') return sub === '袜套' ? '袜子-袜套' : '袜子-袜子';
+                if (cat === '饰品' && sub) return '饰品-' + sub.replace(/\*/g, '·');
+                return cat;
+            }
+        }
+        return uidMainType(uid); // fallback to prefix-based
+    }
 
     // ========== STEP 3: Build f.js data from 关卡属性 ==========
     const flistWhite = {};
@@ -291,6 +364,41 @@ try {
 
     fs.writeFileSync(outputPathSeal, sealOutput.replace(/\r\n/g, '\n'));
     console.log(`=> levels_seal.txt written to ${outputPathSeal}`);
+
+    // ========== STEP 7: Write flist.txt (whitelist levels only) ==========
+    function formatFlistOutput(obj) {
+        const keys = Object.keys(obj);
+        if (keys.length === 0) return 'var Flist = {};\n';
+        let out = 'var Flist = {\n';
+        for (const key of keys) {
+            const ids = obj[key];
+            // Derive display categories from whitelist IDs (uses 参数表/clothes_data lookup)
+            const typeSet = new Set();
+            for (const id of ids) {
+                const t = getDisplayCategory(id);
+                if (t) typeSet.add(t);
+            }
+            // 连衣裙 = 上装 + 下装: if any one of the three appears, include all three
+            const dressParts = ['连衣裙', '上装', '下装'];
+            if (dressParts.some(t => typeSet.has(t))) {
+                dressParts.forEach(t => typeSet.add(t));
+            }
+            // Sort: canonical main types first, then subtypes (袜子-*, 饰品-*) after their parent
+            const typeArr = TYPE_ORDER.filter(t => typeSet.has(t));
+            for (const t of typeSet) { if (!typeArr.includes(t)) typeArr.push(t); }
+
+            out += `"${key}" : {"type" : [${typeArr.map(t => `"${t}"`).join(',')}]`;
+            for (const id of ids) {
+                out += `,\n"${id}" : "A"`;
+            }
+            out += ',\n},\n';
+        }
+        out += '}\n';
+        return out;
+    }
+
+    fs.writeFileSync(outputPathFlist, formatFlistOutput(flistWhite).replace(/\r\n/g, '\n'));
+    console.log(`=> flist.txt written to ${outputPathFlist} (${Object.keys(flistWhite).length} whitelist levels)`);
 
     // ========== Diff check ==========
     const existingF = path.join(cwd, '..', 'nk', 'f.js');
