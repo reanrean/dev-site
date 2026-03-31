@@ -341,12 +341,28 @@ function generateLine(idx, source, abbrev, suitName) {
     return { id, line, itemNo };
 }
 
-// === Process a single item with evolution expansion ===
+// === Process a single item with evolution expansion + inline dye generation ===
 // If the item has an evo chain, emit all items in the chain (base first).
+// For each emitted item, also emit its dye variants immediately (so dyes inherit correct abbrev).
 // base gets the original source (resolved to task drop if 公/少), others get 设·进<prevItemNo>
 // suitName: base+intermediate get suitName·基, top (the original item) gets suitName
-function emitWithEvolution(itemId, source, abbrev, suitName, results, errors) {
+function emitWithEvolution(itemId, source, abbrev, suitName, results, errors, emittedDyes) {
     const chain = getEvoChain(itemId);
+
+    // Helper: emit dyes for a given item after it's been emitted
+    function emitDyesFor(cid, itemNo, itemAbbrev, suitNameForDye) {
+        const dyes = baseToDyes[cid];
+        if (!dyes) return;
+        for (const dyeId of dyes) {
+            if (emittedDyes.has(dyeId)) continue;
+            emittedDyes.add(dyeId);
+            const dIdx = idMap[dyeId];
+            if (!dIdx) { errors.push(`Dye ID ${dyeId} not found`); continue; }
+            const r = generateLine(dIdx, `设·定${itemNo}`, `定·${itemAbbrev}`, `${suitNameForDye}·染`);
+            if (r.error) { errors.push(r.error); continue; }
+            results.push(r);
+        }
+    }
 
     if (chain.length === 1) {
         // No evolution - just emit normally, but resolve task drops if needed
@@ -360,11 +376,12 @@ function emitWithEvolution(itemId, source, abbrev, suitName, results, errors) {
         const r = generateLine(idx, finalSource, abbrev, suitName);
         if (r.error) { errors.push(r.error); return; }
         results.push(r);
+        // Emit dyes for this item
+        if (suitName) emitDyesFor(itemId, r.itemNo, abbrev, suitName);
         return;
     }
 
     // Evolution chain: chain[0]=base, chain[last]=top (the one in suit)
-    // Emit from base to top
     for (let ci = 0; ci < chain.length; ci++) {
         const cid = chain[ci];
         const idx = idMap[cid];
@@ -375,15 +392,12 @@ function emitWithEvolution(itemId, source, abbrev, suitName, results, errors) {
         let itemSource, itemAbbrev, itemSuit;
 
         if (isTop) {
-            // Top item: use suitName as-is (e.g. "稚梦咩咩")
             itemSuit = suitName;
         } else {
-            // Base and intermediate: suitName·基
             itemSuit = suitName ? `${suitName}·基` : '';
         }
 
         if (isBase) {
-            // Base item: use original source, resolve task drops if 公/少
             itemSource = source;
             itemAbbrev = abbrev;
             if (abbrev === '公' || abbrev === '少') {
@@ -391,7 +405,6 @@ function emitWithEvolution(itemId, source, abbrev, suitName, results, errors) {
                 if (drop) itemSource = drop;
             }
         } else {
-            // Evolved item: source = 设·进<prevItemNo>
             const prevId = chain[ci - 1];
             const prevItemNo = hardcodeNo[prevId] || getItemNo(prevId);
             itemSource = `设·进${prevItemNo}`;
@@ -401,6 +414,8 @@ function emitWithEvolution(itemId, source, abbrev, suitName, results, errors) {
         const r = generateLine(idx, itemSource, itemAbbrev, itemSuit);
         if (r.error) { errors.push(r.error); continue; }
         results.push(r);
+        // Emit dyes for this evo step (inherits correct itemAbbrev)
+        if (suitName) emitDyesFor(cid, r.itemNo, itemAbbrev, suitName);
     }
 }
 
@@ -426,7 +441,7 @@ for (const line of csvLines) {
         if (!indices || indices.length === 0) { errors.push(`NOT FOUND: "${itemName}"`); continue; }
         for (const idx of indices) {
             const id = clothesData[idx][0];
-            emitWithEvolution(id, source, abbrev, '', results, errors);
+            emitWithEvolution(id, source, abbrev, '', results, errors, new Set());
         }
     } else {
         // === Suit (套装) ===
@@ -435,52 +450,28 @@ for (const line of csvLines) {
 
         const allBaseClothes = new Set(suit.clothes);
         const allRewardClothes = new Set(suit.rewardClothes);
+        const emittedDyes = new Set(); // track dyes emitted inline by emitWithEvolution
 
-        // --- 1. Base suit clothes (with evolution expansion) ---
+        // --- 1. Base suit clothes (with evolution expansion + inline dyes) ---
         for (const clothId of suit.clothes) {
-            emitWithEvolution(clothId, source, abbrev, itemName, results, errors);
+            emitWithEvolution(clothId, source, abbrev, itemName, results, errors, emittedDyes);
         }
 
-        // --- 2. Reward clothes (with evolution expansion) ---
+        // --- 2. Reward clothes (with evolution expansion + inline dyes) ---
         for (const rewardId of suit.rewardClothes) {
-            emitWithEvolution(rewardId, `套装·${itemName}`, `套·${abbrev}`, `${itemName}·套`, results, errors);
+            emitWithEvolution(rewardId, `套装·${itemName}`, `套·${abbrev}`, `${itemName}·套`, results, errors, emittedDyes);
         }
 
-        // --- 3. Dye variants ---
-        const dyeItemIds = new Set();
-        const dyeBaseMap = {};
-        // Collect dyes for base clothes + reward clothes + their evo chains
-        const allDirectItems = new Set([...allBaseClothes, ...allRewardClothes]);
-        // Also include evo chain items for dye lookup
-        for (const cid of [...allBaseClothes, ...allRewardClothes]) {
-            const chain = getEvoChain(cid);
-            for (const ecid of chain) allDirectItems.add(ecid);
-        }
-        for (const baseClothId of allDirectItems) {
-            const dyes = baseToDyes[baseClothId];
-            if (!dyes) continue;
-            const baseItemNo = hardcodeNo[baseClothId] || getItemNo(baseClothId);
-            for (const dyeId of dyes) {
-                dyeItemIds.add(dyeId);
-                dyeBaseMap[dyeId] = { baseId: baseClothId, baseItemNo };
-            }
-        }
-
-        for (const dyeId of dyeItemIds) {
-            const idx = idMap[dyeId];
-            if (!idx) { errors.push(`Dye ID ${dyeId} not found (suit: ${itemName})`); continue; }
-            const base = dyeBaseMap[dyeId];
-            const r = generateLine(idx, `设·定${base.baseItemNo}`, `定·${abbrev}`, `${itemName}·染`);
-            if (r.error) { errors.push(r.error); continue; }
-            results.push(r);
-        }
-
-        // --- 4. Check suit_convert for extras ---
+        // --- 3. Check suit_convert for extras ---
         const suitConvertClothes = new Set();
         const suitDyeVariants = suitDyes[suit.id];
         if (suitDyeVariants) { for (const v of suitDyeVariants) for (const cid of v) suitConvertClothes.add(cid); }
 
-        const allKnown = new Set([...allDirectItems, ...allRewardClothes, ...dyeItemIds]);
+        // Build allKnown: base clothes + evo chains + reward clothes + evo chains + emitted dyes
+        const allKnown = new Set([...allBaseClothes, ...allRewardClothes, ...emittedDyes]);
+        for (const cid of [...allBaseClothes, ...allRewardClothes]) {
+            for (const ecid of getEvoChain(cid)) allKnown.add(ecid);
+        }
         const extraFromConvert = [];
         for (const cid of suitConvertClothes) { if (!allKnown.has(cid)) extraFromConvert.push(cid); }
 
@@ -512,5 +503,5 @@ fs.writeFileSync(outputPath, output.replace(/\r\n/g, '\n'));
 console.log(`\n=> ${results.length} lines written to ${outputPath}`);
 if (warnings.length) { console.log(`\n⚠ ${warnings.length} warnings:`); for (const w of warnings) console.log(`  ⚠ ${w}`); }
 if (errors.length) { console.log(`\n❌ ${errors.length} errors:`); for (const e of errors) console.log(`  - ${e}`); }
-console.log('\n--- Output preview ---');
-for (const r of results) console.log(r.line);
+// console.log('\n--- Output preview ---');
+// for (const r of results) console.log(r.line);
