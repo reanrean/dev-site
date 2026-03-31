@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const xlsx = require('xlsx');
+const { loadIdOverrides } = require('./load_id_overrides');
 
 // --- AUTO-DETECT .xlsm IN SCRIPT DIRECTORY ---
 const cwd = __dirname;
@@ -30,7 +31,7 @@ function getItemNo(id) {
     const last4 = s.substring(s.length - 4);
     return last4[0] === '0' ? last4.substring(1) : last4;
 }
-const hardcodeNo = { 30961: '9961', 81327: '9327', 83221: '9221' };
+const { hardcodeNo } = loadIdOverrides(__dirname);
 
 // --- Task ID -> level display string ---
 // e.g. 2116032 -> "III-11-支3公", 30121 -> "3-12少"

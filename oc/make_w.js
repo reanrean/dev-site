@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const xlsx = require('xlsx');
+const { loadIdOverrides } = require('./load_id_overrides');
 
 // --- AUTO-DETECT .xlsm IN SCRIPT DIRECTORY ---
 const cwd = __dirname;
@@ -26,8 +27,7 @@ function getItemNo(id) {
     return last4[0] === '0' ? last4.substring(1) : last4;
 }
 
-// Hardcoded item number overrides (duplicate game numbers, from maint.js convert_uid)
-const hardcodeNo = { 30961: '9961', 81327: '9327', 83221: '9221' };
+const { hardcodeNo } = loadIdOverrides(__dirname);
 
 // --- MAIN ---
 console.log("Using xlsm:", xlsmFile);
