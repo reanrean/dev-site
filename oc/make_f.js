@@ -139,11 +139,14 @@ try {
         }
     }
     const idToDepthType = {}; // game item ID -> depthType
+    const idToName = {};      // game item ID -> clothes name
     const clothesDataSheet = xlsx.utils.sheet_to_json(wb.Sheets['clothes_data'], { header: 1 });
     for (let i = 1; i < clothesDataSheet.length; i++) {
         const gameId = clothesDataSheet[i][0];
+        const name = clothesDataSheet[i][1];
         const dt = clothesDataSheet[i][4];
         if (gameId != null && dt != null) idToDepthType[gameId] = dt;
+        if (gameId != null && name != null) idToName[gameId] = name;
     }
     console.log(`参数表: ${Object.keys(depthTypeMap).length} depthTypes, clothes_data: ${Object.keys(idToDepthType).length} items`);
 
@@ -388,7 +391,18 @@ try {
             const typeArr = TYPE_ORDER.filter(t => typeSet.has(t));
             for (const t of typeSet) { if (!typeArr.includes(t)) typeArr.push(t); }
 
+            // For each type, find the smallest id in that category and get its name
+            const typeCommentParts = typeArr.map(type => {
+                const typeIds = ids.filter(id => getDisplayCategory(id) === type);
+                if (typeIds.length === 0) return null;
+                const minId = typeIds.reduce((a, b) => a < b ? a : b);
+                return idToName[minId] || null;
+            }).filter(Boolean);
+
             out += `"${key}" : {"type" : [${typeArr.map(t => `"${t}"`).join(',')}]`;
+            if (typeCommentParts.length > 0) {
+                out += `,\n// ${typeCommentParts.join(', ')}`;
+            }
             for (const id of ids) {
                 out += `,\n"${id}" : "A"`;
             }
