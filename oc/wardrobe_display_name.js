@@ -3,12 +3,12 @@
 const xlsx = require('xlsx');
 
 /**
- * 显示名 = clothes_data B 列 + F品白名单昼夜后缀（不做 Excel 里 L 列的 !/# 前缀）。
- * O 列 id → 名字后加 [夜]，P 列 id → [昼]（与 F品白名单 VLOOKUP 逻辑一致）。
+ * DisplayName = clothes_data col B + F品白名单 col O/P -> [夜]/[昼] suffix.
+ * col O id -> name + [夜], col P id -> name + [昼] (consistent with F品白名单 VLOOKUP logic).
  *
  * @param {import('xlsx').WorkBook} wb
  * @returns {{ nightIds: Set<number>, dayIds: Set<number>, dayNightPartner: Map<number, number>, sheetFound: boolean }}
- * dayNightPartner: 同一行 O(夜) 与 P(昼) 均有时，双向 id→配对 id，供 make_wardrobe1 把成就里只列了一边的衣服补全另一边。
+ * dayNightPartner: when O(夜) and P(昼) are paired, bidirectional id->partner id, for make_wardrobe1 to complete items with the missing partner.
  */
 function loadDayNightWhitelist(wb) {
     const nightIds = new Set();
@@ -47,8 +47,8 @@ function loadDayNightWhitelist(wb) {
 }
 
 /**
- * @param {any[]} clothesRow clothes_data 一行（A=id, B=name, …）
- * @param {number|string} id 衣服 id（通常 clothesRow[0]）
+ * @param {any[]} clothesRow clothes_data row (A=id, B=name, …)
+ * @param {number|string} id item id (usually clothesRow[0])
  * @param {Set<number>} nightIds
  * @param {Set<number>} dayIds
  */
@@ -64,7 +64,7 @@ function displayClothesName(clothesRow, id, nightIds, dayIds) {
     return base + suffix;
 }
 
-/** 写入 wardrobe1 行时的单引号转义 */
+/** escape single quotes in wardrobe1 line for Lua */
 function escapeForWardrobeLine(s) {
     return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 }

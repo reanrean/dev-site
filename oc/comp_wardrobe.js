@@ -1,21 +1,20 @@
 /**
- * comp_wardrobe.js — maint.js「wardrobe」式对比，不做任何 unique key 对齐。
+ * comp_wardrobe.js — same as maint.js static_generate() with staticMode == 'wardrobe', no unique key matching.
  *
- * 与 maint.js static_generate() 里 staticMode == 'wardrobe' 相同：
- *   从 xlsm clothes_data 按 make_wardrobe1 规则推出与 wardrobe1 一行同构的前 15 列，
- *   再对每一行算同一串 v：
- *     v = name + category + parseInt(编号) + 心级 + zeroIfBlank(华丽)…zeroIfBlank(保暖) + (tag 无 '+' 时才拼 tag)
+ * derive row in wardrobe1 format (first 15 columns) from xlsm clothes_data using make_wardrobe1 rules,
+ * then construct v for each row:
+ *   v = name + category + parseInt(itemNo) + rare + zeroIfBlank(华丽)...zeroIfBlank(保暖) + (join only when tag without '+')
  *
- * 把所有 xlsm 行得到的 v 放进 Set；对 wardrobe1 每一行算 v，若 v ∉ Set 则视为 mismatch
- * （官方可能改了名字/分类/编号/心级/属性/tag 等任意一项）。
+ * put all v from xlsm into Set; for each wardrobe1 row, if not in Set, it is a mismatch
+ * (game developer may have changed name/category/itemNo/rare/attributes/tag etc.).
  *
- * xlsm 多出来、wardrobe1 没有的 v 不输出。
+ * does not output when v is in xlsm but not in wardrobe1.
  *
- * 名字：clothes_data B 列 + F品白名单 O/P 昼夜后缀（与 make_wardrobe1 一致，无 !/# 前缀）。
+ * name: clothes_data col B + F品白名单 col O/P -> [夜]/[昼] suffix.
  *
- * mismatch 时按 wardrobe1 的「分类 + 编号」反查 xlsm（与 make_wardrobe1 同源推导），打印同编号的 clothes_data 行：
- *   xlsm id=… v="…" 以及合成的前 15 列（便于和 wardrobe1 逐项对比）。
- * make_wardrobe1.js 本身只有 id→行、getItemNo 正向；反查表仅在此脚本构建。
+ * mismatch: lookup xlsm by category + itemNo, print clothes_data row with the same itemNo:
+ *   xlsm id=... v="..." and first 15 columns (for easy comparison with wardrobe1).
+ * make_wardrobe1.js only has id->row, getItemNo forward; reverse lookup table only built in this script.
  *
  * Writes: output/comp_wardrobe_report.txt
  */
@@ -52,7 +51,7 @@ function zeroIfBlank(str) {
     return String(str);
 }
 
-/** w 至少要有下标 0..14（与 wardrobe1 一行一致）；v 不用 15..19 */
+/** w must have at least index 0..14 (consistent with wardrobe1 row); v doesn't use index 15..19 */
 function wardrobeSignature(w) {
     const tag = String(w[14] == null ? '' : w[14]);
     let v = String(w[0]) + String(w[1]) + parseInt(String(w[2]), 10) + String(w[3] == null ? '' : w[3]);
@@ -153,7 +152,7 @@ function valueToGrade(rawValue, divisor) {
 const clothesData = xlsx.utils.sheet_to_json(clothesSheet, { header: 1 });
 
 /**
- * 从 clothes_data 第 i 行构造与 wardrobe1 前 15 列同构的数组，用于 wardrobeSignature。
+ * Construct an array with the same format as wardrobe1 row (first 15 columns) from clothes_data row i, for wardrobeSignature.
  * @returns {{ gameId: number, w: string[] } | null}
  */
 function syntheticWardrobeRowFromXlsm(i) {
@@ -193,7 +192,7 @@ function syntheticWardrobeRowFromXlsm(i) {
     return { gameId: Number(id), w };
 }
 
-/** 分类\0编号 → xlsm 中所有匹配行（通常 1 条；hardcode/重复时可能多条） */
+/** cat+itemNo -> all matching xlsm rows (usually 1) */
 /** @type {Map<string, { gameId: number, v: string, w: string[] }[]>} */
 const byCategoryAndItemNo = new Map();
 
@@ -242,18 +241,14 @@ const outputPath = path.join(scriptDir, 'output', 'comp_wardrobe_report.txt');
 const outputDir = path.dirname(outputPath);
 if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
-let fileBody = `// comp_wardrobe.js — vlookup: wardrobe1.v ∉ xlsm-derived v set\n`;
+let fileBody = `// comp_wardrobe.js — vlookup: wardrobe1.row not in xlsm-derived set\n`;
 fileBody += `// xlsm: ${xlsmFile}\n`;
-fileBody += `// F品白名单: ${fWhitelistFound ? `夜${nightIds.size} / 昼${dayIds.size} id` : '未找到'}\n`;
-fileBody += `// v 定义同 maint.js static 「wardrobe」: name+cat+parseInt(编号)+心级+华丽…保暖+tag(无'+')\n`;
-fileBody += `// xlsm 可解析行 v 种类: ${vFromXlsm.size} | clothes_data 跳过行: ${skippedXlsm}\n`;
-fileBody += `// xlsm 重复 v 出现次数(行数-种类): ${duplicateVCount}\n`;
-fileBody += `// wardrobe1 行数: ${wardrobe1.length}\n`;
-fileBody += `// mismatch (v 不在 xlsm 集合中): ${mismatches.length}\n`;
-fileBody += `// 反查索引: 分类+编号 → xlsm id（与 make_wardrobe1 推导一致，非游戏内其它 id 表）\n\n`;
+fileBody += `// F品白名单: ${fWhitelistFound ? `${nightIds.size} Ye / ${dayIds.size} Zhou id` : 'not found'}\n`;
+fileBody += `// xlsm size: ${vFromXlsm.size} | clothes_data skipped: ${skippedXlsm}\n`;
+fileBody += `// xlsm duplicate count: ${duplicateVCount}\n`;
+fileBody += `// wardrobe1 rows: ${wardrobe1.length}\n`;
+fileBody += `// mismatch (v not in xlsm set): ${mismatches.length}\n\n`;
 
-fileBody += `${'='.repeat(72)}\n`;
-fileBody += `wardrobe1 中 v 未在 xlsm 集合命中（可能官方改了任意属性）\n`;
 fileBody += `${'='.repeat(72)}\n\n`;
 
 if (mismatches.length === 0) {
@@ -262,15 +257,15 @@ if (mismatches.length === 0) {
     for (const m of mismatches) {
         fileBody += `[#${m.wi}] wardrobe1 v=${JSON.stringify(m.v)}\n${m.line}\n`;
         if (m.xlsmSameCatNo.length === 0) {
-            fileBody += `  (xlsm 无 分类=${JSON.stringify(m.cat)} 编号=${JSON.stringify(m.itemNo)} 的 clothes_data 行；分类或编号可能已改)\n`;
+            fileBody += `  (xlsm not found)\n`;
         } else {
             if (m.xlsmSameCatNo.length > 1) {
-                fileBody += `  (xlsm 同分类+编号 ${m.xlsmSameCatNo.length} 行)\n`;
+                fileBody += `  (xlsm ${m.xlsmSameCatNo.length} rows)\n`;
             }
             for (const x of m.xlsmSameCatNo) {
                 fileBody += `  xlsm id=${x.gameId} v=${JSON.stringify(x.v)}\n`;
                 const cells = x.w.slice(0, 15).map((c) => escapeForWardrobeLine(c));
-                fileBody += `  xlsm 前15列: ['${cells.join("','")}'],\n`;
+                fileBody += `  ['${cells.join("','")}'],\n`;
             }
         }
         fileBody += '\n';
@@ -280,6 +275,6 @@ if (mismatches.length === 0) {
 fs.writeFileSync(outputPath, fileBody.replace(/\r\n/g, '\n'));
 
 console.log(`Using xlsm: ${xlsmFile}`);
-if (fWhitelistFound) console.log(`F品白名单: ${nightIds.size} 夜 / ${dayIds.size} 昼 id`);
+if (fWhitelistFound) console.log(`F品白名单: ${nightIds.size} Ye / ${dayIds.size} Zhou id`);
 console.log(`xlsm distinct v: ${vFromXlsm.size} | wardrobe1: ${wardrobe1.length} | mismatch: ${mismatches.length}`);
 console.log(`\n=> ${outputPath}`);
