@@ -8,18 +8,19 @@ const { loadDayNightWhitelist, displayClothesName, escapeForWardrobeLine } = req
 // suitName: 夜 id (col O) -> suitName·入夜 / suitName·入夜·套; 昼 id keeps original.
 // Lua may omit one side's id; emits 夜<->昼 partner from F品白名单 O<->P.
 
-// --- AUTO-DETECT .xlsm IN SCRIPT DIRECTORY ---
+// --- AUTO-DETECT .xlsm IN src/ ---
 const cwd = __dirname;
-const dirFiles = fs.readdirSync(cwd);
+const srcDir = path.join(__dirname, 'src');
+const dirFiles = fs.readdirSync(srcDir);
 const xlsmFile = dirFiles.filter(f => f.endsWith('.xlsm') && !f.startsWith('~$')).sort().reverse()[0];
-if (!xlsmFile) { console.error('Error: No .xlsm file found in current directory.'); process.exit(1); }
-const excelPath = path.join(cwd, xlsmFile);
+if (!xlsmFile) { console.error('Error: No .xlsm file found in src/ directory.'); process.exit(1); }
+const excelPath = path.join(srcDir, xlsmFile);
 
 // --- Lua data files (all optional - skip if missing) ---
-const luaDir = dirFiles.filter(f => { try { return fs.statSync(path.join(cwd, f)).isDirectory() && f.includes('lua'); } catch { return false; } })[0];
+const luaDir = dirFiles.filter(f => { try { return fs.statSync(path.join(srcDir, f)).isDirectory() && f.includes('lua'); } catch { return false; } })[0];
 function luaPath(filename) {
     if (!luaDir) return null;
-    const p = path.join(cwd, luaDir, filename);
+    const p = path.join(srcDir, luaDir, filename);
     return fs.existsSync(p) ? p : null;
 }
 

@@ -84,13 +84,14 @@ function loadWardrobe1() {
     return wardrobe1;
 }
 
-const dirFiles = fs.readdirSync(scriptDir);
+const srcDir = path.join(__dirname, 'src');
+const dirFiles = fs.readdirSync(srcDir);
 const xlsmFile = dirFiles.filter((f) => f.endsWith('.xlsm') && !f.startsWith('~$')).sort().reverse()[0];
 if (!xlsmFile) {
-    console.error('Error: No .xlsm file found in current directory.');
+    console.error('Error: No .xlsm file found in src/ directory.');
     process.exit(1);
 }
-const excelPath = path.join(scriptDir, xlsmFile);
+const excelPath = path.join(srcDir, xlsmFile);
 
 const wb = xlsx.readFile(excelPath);
 const { nightIds, dayIds, sheetFound: fWhitelistFound } = loadDayNightWhitelist(wb);

@@ -2,17 +2,18 @@ const fs = require('fs');
 const path = require('path');
 const xlsx = require('xlsx');
 
-// --- AUTO-DETECT FILES IN SCRIPT DIRECTORY ---
+// --- AUTO-DETECT FILES IN src/ ---
 const cwd = __dirname;
-const files = fs.readdirSync(cwd);
+const srcDir = path.join(__dirname, 'src');
+const files = fs.readdirSync(srcDir);
 
 const xlsmFile = files.filter(f => f.endsWith('.xlsm')).sort().reverse()[0];
-if (!xlsmFile) { console.error('Error: No .xlsm file found in current directory.'); process.exit(1); }
-const excelPath = path.join(cwd, xlsmFile);
+if (!xlsmFile) { console.error('Error: No .xlsm file found in src/ directory.'); process.exit(1); }
+const excelPath = path.join(srcDir, xlsmFile);
 
 const csvFile = files.filter(f => f.endsWith('.csv')).sort().reverse()[0];
-if (!csvFile) { console.error('Error: No .csv file found in current directory.'); process.exit(1); }
-const guildCsvPath = path.join(cwd, csvFile);
+if (!csvFile) { console.error('Error: No .csv file found in src/ directory.'); process.exit(1); }
+const guildCsvPath = path.join(srcDir, csvFile);
 
 const withLevels = process.argv.includes('--l');
 

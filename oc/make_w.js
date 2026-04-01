@@ -3,13 +3,14 @@ const path = require('path');
 const xlsx = require('xlsx');
 const { loadIdOverrides } = require('./load_id_overrides');
 
-// --- AUTO-DETECT .xlsm IN SCRIPT DIRECTORY ---
+// --- AUTO-DETECT .xlsm IN src/ ---
 const cwd = __dirname;
-const files = fs.readdirSync(cwd);
+const srcDir = path.join(__dirname, 'src');
+const files = fs.readdirSync(srcDir);
 
 const xlsmFile = files.filter(f => f.endsWith('.xlsm')).sort().reverse()[0];
-if (!xlsmFile) { console.error('Error: No .xlsm file found in current directory.'); process.exit(1); }
-const excelPath = path.join(cwd, xlsmFile);
+if (!xlsmFile) { console.error('Error: No .xlsm file found in src/ directory.'); process.exit(1); }
+const excelPath = path.join(srcDir, xlsmFile);
 
 const outputPath = path.join(cwd, '..', 'nk', 'w.js');
 

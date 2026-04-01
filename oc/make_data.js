@@ -165,18 +165,19 @@ function writeSourceCheckReport() {
 }
 
 // --- Lua directory ---
-const dirFiles = fs.readdirSync(scriptDir);
+const srcDir = path.join(__dirname, 'src');
+const dirFiles = fs.readdirSync(srcDir);
 const luaDirName = dirFiles.filter(f => {
-    try { return fs.statSync(path.join(scriptDir, f)).isDirectory() && f.includes('lua'); }
+    try { return fs.statSync(path.join(srcDir, f)).isDirectory() && f.includes('lua'); }
     catch { return false; }
 })[0];
 
 if (!luaDirName) {
-    console.error('Error: No lua directory found. Exiting.');
+    console.error('Error: No lua directory found in src/. Exiting.');
     process.exit(1);
 }
 
-const luaDir = path.join(scriptDir, luaDirName);
+const luaDir = path.join(srcDir, luaDirName);
 console.log('Lua dir:', luaDirName);
 
 function luaFile(name) {
