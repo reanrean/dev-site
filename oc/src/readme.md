@@ -1,0 +1,16 @@
+# Process:
+- make_w
+- make_f
+- if new chap:
+  - make_f --l
+  - flist, levels -> update both repo
+- **make_wardrobe1 (with input/) -> verify and update**
+- **convert to wardrobe in maint**
+- make_data
+  - TODO: guild_shop, construct
+- make_data source check
+- comp_wardrobe
+- hs-rean
+- **top_ajglz_modules**
+- **full_top_ajglz**
+- aojiaogongluezu

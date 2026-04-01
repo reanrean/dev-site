@@ -1,5 +1,5 @@
 node_modules/
+src/**
+input/**
 output/
-*lua*/
-*.xlsm
-*.csv
+!*.md
