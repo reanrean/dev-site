@@ -64,7 +64,7 @@ function displayClothesName(clothesRow, id, nightIds, dayIds) {
     return base + suffix;
 }
 
-/** escape single quotes in wardrobe1 line for Lua */
+/** escape single quotes in wardrobe1 line */
 function escapeForWardrobeLine(s) {
     return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 }
