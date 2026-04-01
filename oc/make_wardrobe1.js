@@ -4,9 +4,9 @@ const xlsx = require('xlsx');
 const { loadIdOverrides } = require('./load_id_overrides');
 const { loadDayNightWhitelist, displayClothesName, escapeForWardrobeLine } = require('./wardrobe_display_name');
 
-// 显示名 = clothes_data B 列 + F品白名单 O/P → [夜]/[昼]（不含 Excel L 列的 !/#）。
-// 套装列：夜版 id（O 列）→ CSV 套装名 +「·入夜」及「·入夜·套」；昼版仍用原名。
-// 成就 Lua 若只含一侧 id，会按 F品白名单 O↔P 行补 emit 另一侧（[夜]/[昼] 与 ·入夜·套 等）。
+// DisplayName = clothes_data col B + F品白名单 col O/P -> [夜]/[昼] suffix.
+// suitName: 夜 id (col O) -> suitName·入夜 / suitName·入夜·套; 昼 id keeps original.
+// Lua may omit one side's id; emits 夜<->昼 partner from F品白名单 O<->P.
 
 // --- AUTO-DETECT .xlsm IN SCRIPT DIRECTORY ---
 const cwd = __dirname;
@@ -71,10 +71,10 @@ const wb = xlsx.readFile(excelPath);
 const { nightIds, dayIds, dayNightPartner, sheetFound: fWhitelistFound } = loadDayNightWhitelist(wb);
 if (fWhitelistFound) {
     const pairCount = Math.floor(dayNightPartner.size / 2);
-    console.log(`F品白名单: ${nightIds.size} 夜 id, ${dayIds.size} 昼 id, ${pairCount} 对 O↔P (套装会补全另一半 id)`);
-} else console.log("F品白名单: (未找到工作表，名字仅用 clothes_data B 列)");
+    console.log(`F品白名单: ${nightIds.size} Ye, ${dayIds.size} Zhou, ${pairCount} O<->P pairs`);
+} else console.log("F品白名单: Sheet not found, only clothes_data is used");
 
-/** 成就 Lua 往往只列昼或只列夜；同一行 O+P 成对时把缺失的另一半 id 追加到列表末尾 */
+// Lua may omit one side's id; appends the 夜<->昼 partner from F品白名单 O<->P.
 function expandClothIdsWithDayNightPartner(ids) {
     if (!fWhitelistFound || dayNightPartner.size === 0) return [...ids];
     const out = [...ids];
@@ -89,11 +89,8 @@ function expandClothIdsWithDayNightPartner(ids) {
     return out;
 }
 
-/**
- * CSV 里的成就套装名 → 写入 wardrobe1「套装」列。
- * - id 在 F品白名单 O 列（夜）：`{csv}·入夜`，奖励来源 `套装·{csv}·入夜`、套装列 `{csv}·入夜·套`
- * - id 在 P 列（昼）或不在名单：仍用 `{csv}`（与现有恒耀神冕[昼] 等一致）
- */
+// - 夜 id (F品白名单 col O): `{csv}·入夜`; rewards use source col `套装·{csv}·入夜` and suit col `{csv}·入夜·套`
+// - 昼 id (col P) or not in list: use `{csv}` as-is (e.g. 恒耀神冕[昼])
 function effectiveSuitLabelForPiece(csvSuitName, pieceId) {
     if (!csvSuitName) return '';
     if (!fWhitelistFound) return csvSuitName;
@@ -290,7 +287,7 @@ const suitDyes = parseSuitConvert(luaPath('suit_convert_data.lua_de'));
 const amputationSet = parseAmputation(luaPath('clothes_amputation_data.lua_de'));
 const evoMap = parseEvolution(luaPath('clothes_evolution_data.lua_de'));
 const taskDropMap = parseTaskDrops(luaPath('task_detail_clothes_data.lua_de'));
-console.log(`Suits: ${Object.keys(suitMap).length}, CvtSeries: ${Object.keys(baseToDyes).length}, SuitConvert: ${Object.keys(suitDyes).length}, 义肢: ${amputationSet.size}, Evo: ${Object.keys(evoMap).length}, TaskDrops: ${Object.keys(taskDropMap).length}`);
+console.log(`Suits: ${Object.keys(suitMap).length}, CvtSeries: ${Object.keys(baseToDyes).length}, SuitConvert: ${Object.keys(suitDyes).length}, Amputation: ${amputationSet.size}, Evo: ${Object.keys(evoMap).length}, TaskDrops: ${Object.keys(taskDropMap).length}`);
 
 // === Grade conversion ===
 function valueToGrade(rawValue, divisor) {
@@ -367,7 +364,7 @@ function generateLine(idx, source, abbrev, suitName, version) {
     const rawAttrs = [
         row[21] || 0, row[22] || 0, row[23] || 0, row[24] || 0,
         row[25] || 0, row[26] || 0, row[27] || 0, row[28] || 0,
-        row[30] || 0, row[29] || 0, // 保暖, 清凉 (swapped)
+        row[30] || 0, row[29] || 0, // 清凉, 保暖 (swapped)
     ];
     const cat = depthTypeMap[depthType];
     if (!cat) return { error: `Unknown depth_type ${depthType} for id ${id}` };
@@ -380,9 +377,34 @@ function generateLine(idx, source, abbrev, suitName, version) {
     const tag2Name = special2 ? (tagMap[special2] || '') : '';
     const tagStr = [tag1Name, tag2Name].filter(Boolean).join('/');
     const yizhi = amputationSet.has(id) ? '1' : '';
-    const displayName = escapeForWardrobeLine(displayClothesName(row, id, nightIds, dayIds));
+    const rawDisplayName = displayClothesName(row, id, nightIds, dayIds);
+    const displayName = escapeForWardrobeLine(rawDisplayName);
     const line = `  ['${displayName}','${displayCat}','${itemNo}','${rare}','${grades[0]}','${grades[1]}','${grades[2]}','${grades[3]}','${grades[4]}','${grades[5]}','${grades[6]}','${grades[7]}','${grades[8]}','${grades[9]}','${tagStr}','${source}','${suitName || ''}','${version}','${abbrev}','${yizhi}'],`;
-    return { id, line, itemNo };
+    const dashIdx = displayCat.indexOf('-');
+    const csvRow = {
+        编号: itemNo,
+        分类: dashIdx === -1 ? displayCat : displayCat.substring(0, dashIdx),
+        类型: dashIdx === -1 ? '' : displayCat.substring(dashIdx + 1),
+        名称: rawDisplayName,
+        心级: String(rare ?? ''),
+        tag1: tag1Name,
+        tag2: tag2Name,
+        华丽: grades[0],
+        简约: grades[1],
+        优雅: grades[2],
+        活泼: grades[3],
+        成熟: grades[4],
+        可爱: grades[5],
+        性感: grades[6],
+        清纯: grades[7],
+        清凉: grades[8], // grades[8] = row[30] = 清凉 (cols swapped in Excel)
+        保暖: grades[9], // grades[9] = row[29] = 保暖 (cols swapped in Excel)
+        义肢: yizhi,
+        获取来源: source,
+        套装: suitName || '',
+        短来源: abbrev,
+    };
+    return { id, line, itemNo, csvRow };
 }
 
 // === Process a single item with evolution expansion + inline dye generation ===
@@ -554,6 +576,22 @@ if (warnings.length > 0) { output += `\n// === WARNINGS ===\n`; for (const w of 
 
 fs.writeFileSync(outputPath, output.replace(/\r\n/g, '\n'));
 console.log(`\n=> ${results.length} lines written to ${outputPath}`);
+
+// === CSV output ===
+const csvPath = outputPath.replace(/\.txt$/, '.csv');
+const csvHeaders = ['编号','分类','类型','名称','心级','tag1','tag2','华丽','简约','优雅','活泼','成熟','可爱','性感','清纯','清凉','保暖','义肢','获取来源','套装','短来源'];
+function csvEscape(val) {
+    const s = String(val ?? '');
+    if (s.includes(',') || s.includes('"') || s.includes('\n')) return '"' + s.replace(/"/g, '""') + '"';
+    return s;
+}
+let csvOutput = '\uFEFF' + csvHeaders.join(',') + '\n'; // BOM for Excel UTF-8 recognition
+for (const r of results) {
+    if (!r.csvRow) continue;
+    csvOutput += csvHeaders.map(h => csvEscape(r.csvRow[h] ?? '')).join(',') + '\n';
+}
+fs.writeFileSync(csvPath, csvOutput.replace(/\r\n/g, '\n'));
+console.log(`=> CSV written to ${csvPath}`);
 if (warnings.length) { console.log(`\n⚠ ${warnings.length} warnings:`); for (const w of warnings) console.log(`  ⚠ ${w}`); }
 if (errors.length) { console.log(`\n❌ ${errors.length} errors:`); for (const e of errors) console.log(`  - ${e}`); }
 // console.log('\n--- Output preview ---');
