@@ -1,7 +1,5 @@
 node_modules/
-*lua*/
 output/
+*lua*/
 *.xlsm
 *.csv
-levels_nk.txt
-levels_seal.txt

@@ -1,6 +1,12 @@
 const fs = require('fs');
 const path = require('path');
 const xlsx = require('xlsx');
+const { loadIdOverrides } = require('./load_id_overrides');
+const { loadDayNightWhitelist, displayClothesName, escapeForWardrobeLine } = require('./wardrobe_display_name');
+
+// 显示名 = clothes_data B 列 + F品白名单 O/P → [夜]/[昼]（不含 Excel L 列的 !/#）。
+// 套装列：夜版 id（O 列）→ CSV 套装名 +「·入夜」及「·入夜·套」；昼版仍用原名。
+// 成就 Lua 若只含一侧 id，会按 F品白名单 O↔P 行补 emit 另一侧（[夜]/[昼] 与 ·入夜·套 等）。
 
 // --- AUTO-DETECT .xlsm IN SCRIPT DIRECTORY ---
 const cwd = __dirname;
@@ -30,7 +36,7 @@ function getItemNo(id) {
     const last4 = s.substring(s.length - 4);
     return last4[0] === '0' ? last4.substring(1) : last4;
 }
-const hardcodeNo = { 30961: '9961', 81327: '9327', 83221: '9221' };
+const { hardcodeNo } = loadIdOverrides(__dirname);
 
 // --- Task ID -> level display string ---
 // e.g. 2116032 -> "III-11-支3公", 30121 -> "3-12少"
@@ -62,6 +68,42 @@ function extractBraced(str, startPos) {
 // --- MAIN ---
 console.log("Using xlsm:", xlsmFile);
 const wb = xlsx.readFile(excelPath);
+const { nightIds, dayIds, dayNightPartner, sheetFound: fWhitelistFound } = loadDayNightWhitelist(wb);
+if (fWhitelistFound) {
+    const pairCount = Math.floor(dayNightPartner.size / 2);
+    console.log(`F品白名单: ${nightIds.size} 夜 id, ${dayIds.size} 昼 id, ${pairCount} 对 O↔P (套装会补全另一半 id)`);
+} else console.log("F品白名单: (未找到工作表，名字仅用 clothes_data B 列)");
+
+/** 成就 Lua 往往只列昼或只列夜；同一行 O+P 成对时把缺失的另一半 id 追加到列表末尾 */
+function expandClothIdsWithDayNightPartner(ids) {
+    if (!fWhitelistFound || dayNightPartner.size === 0) return [...ids];
+    const out = [...ids];
+    const seen = new Set(ids.map((x) => Number(x)));
+    for (const id of ids) {
+        const other = dayNightPartner.get(Number(id));
+        if (other != null && !seen.has(other)) {
+            seen.add(other);
+            out.push(other);
+        }
+    }
+    return out;
+}
+
+/**
+ * CSV 里的成就套装名 → 写入 wardrobe1「套装」列。
+ * - id 在 F品白名单 O 列（夜）：`{csv}·入夜`，奖励来源 `套装·{csv}·入夜`、套装列 `{csv}·入夜·套`
+ * - id 在 P 列（昼）或不在名单：仍用 `{csv}`（与现有恒耀神冕[昼] 等一致）
+ */
+function effectiveSuitLabelForPiece(csvSuitName, pieceId) {
+    if (!csvSuitName) return '';
+    if (!fWhitelistFound) return csvSuitName;
+    const id = Number(pieceId);
+    if (nightIds.has(id)) {
+        const suf = '·入夜';
+        return csvSuitName.endsWith(suf) ? csvSuitName : csvSuitName + suf;
+    }
+    return csvSuitName;
+}
 
 // === Build maps from 参数表 ===
 const ps = wb.Sheets['参数表'];
@@ -338,7 +380,8 @@ function generateLine(idx, source, abbrev, suitName, version) {
     const tag2Name = special2 ? (tagMap[special2] || '') : '';
     const tagStr = [tag1Name, tag2Name].filter(Boolean).join('/');
     const yizhi = amputationSet.has(id) ? '1' : '';
-    const line = `  ['${row[1]}','${displayCat}','${itemNo}','${rare}','${grades[0]}','${grades[1]}','${grades[2]}','${grades[3]}','${grades[4]}','${grades[5]}','${grades[6]}','${grades[7]}','${grades[8]}','${grades[9]}','${tagStr}','${source}','${suitName || ''}','${version}','${abbrev}','${yizhi}'],`;
+    const displayName = escapeForWardrobeLine(displayClothesName(row, id, nightIds, dayIds));
+    const line = `  ['${displayName}','${displayCat}','${itemNo}','${rare}','${grades[0]}','${grades[1]}','${grades[2]}','${grades[3]}','${grades[4]}','${grades[5]}','${grades[6]}','${grades[7]}','${grades[8]}','${grades[9]}','${tagStr}','${source}','${suitName || ''}','${version}','${abbrev}','${yizhi}'],`;
     return { id, line, itemNo };
 }
 
@@ -453,18 +496,22 @@ for (const csvFile of csvFiles) {
             const suit = suitMap[itemName];
             if (!suit) { errors.push(`SUIT NOT FOUND in lua: "${itemName}"`); continue; }
 
-            const allBaseClothes = new Set(suit.clothes);
-            const allRewardClothes = new Set(suit.rewardClothes);
+            const expandedBase = expandClothIdsWithDayNightPartner(suit.clothes);
+            const expandedReward = expandClothIdsWithDayNightPartner(suit.rewardClothes);
+            const allBaseClothes = new Set(expandedBase);
+            const allRewardClothes = new Set(expandedReward);
             const emittedDyes = new Set();
 
             // --- 1. Base suit clothes (with evolution expansion + inline dyes) ---
-            for (const clothId of suit.clothes) {
-                emitWithEvolution(clothId, source, abbrev, itemName, version, results, errors, emittedDyes);
+            for (const clothId of expandedBase) {
+                const suitLabel = effectiveSuitLabelForPiece(itemName, clothId);
+                emitWithEvolution(clothId, source, abbrev, suitLabel, version, results, errors, emittedDyes);
             }
 
             // --- 2. Reward clothes (with evolution expansion + inline dyes) ---
-            for (const rewardId of suit.rewardClothes) {
-                emitWithEvolution(rewardId, `套装·${itemName}`, `套·${abbrev}`, `${itemName}·套`, version, results, errors, emittedDyes);
+            for (const rewardId of expandedReward) {
+                const rewardSuitLabel = effectiveSuitLabelForPiece(itemName, rewardId);
+                emitWithEvolution(rewardId, `套装·${rewardSuitLabel}`, `套·${abbrev}`, `${rewardSuitLabel}·套`, version, results, errors, emittedDyes);
             }
 
             // --- 3. Check suit_convert for extras ---
@@ -484,7 +531,8 @@ for (const csvFile of csvFiles) {
                 for (const extraId of extraFromConvert) {
                     const idx = idMap[extraId];
                     if (!idx) { errors.push(`Extra suit_convert ID ${extraId} not found (suit: ${itemName})`); continue; }
-                    const r = generateLine(idx, '', '', `${itemName}·染`, version);
+                    const extraSuitLabel = effectiveSuitLabelForPiece(itemName, extraId);
+                    const r = generateLine(idx, '', '', `${extraSuitLabel}·染`, version);
                     if (r.error) { errors.push(r.error); continue; }
                     results.push(r);
                 }
