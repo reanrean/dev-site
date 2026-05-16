@@ -47,11 +47,17 @@ function loadCurrentWardrobeItems(filePath) {
     let match;
     while ((match = rowRe.exec(raw)) !== null) {
         const name = unescapeWardrobeCell(match[1]);
+        const category = unescapeWardrobeCell(match[2]);
         const itemNo = unescapeWardrobeCell(match[3]);
-        if (itemNo && !items.has(itemNo)) items.set(itemNo, name);
+        const key = `${category}|${itemNo}`;
+        if (itemNo && !items.has(key)) items.set(key, { name, category });
     }
     console.log(`Loaded ${items.size} existing items from ${filePath}`);
     return items;
+}
+
+function wardrobeDuplicateKey(category, itemNo) {
+    return `${category}|${itemNo}`;
 }
 
 // --- Game ID -> nikkis_choice item number ---
@@ -429,7 +435,7 @@ function generateLine(idx, source, abbrev, suitName, version) {
         套装: suitName || '',
         短来源: abbrev,
     };
-    return { id, line, itemNo, displayName: rawDisplayName, csvRow };
+    return { id, line, itemNo, displayCat, displayName: rawDisplayName, csvRow };
 }
 
 // === Process a single item with evolution expansion + inline dye generation ===
@@ -592,12 +598,13 @@ for (const csvFile of csvFiles) {
 const currentWardrobeItems = loadCurrentWardrobeItems(currentWardrobePath);
 const duplicateItems = [];
 for (const r of results) {
-    if (currentWardrobeItems.has(String(r.itemNo))) {
-        const existingName = currentWardrobeItems.get(String(r.itemNo));
+    const duplicateKey = wardrobeDuplicateKey(r.displayCat, String(r.itemNo));
+    if (currentWardrobeItems.has(duplicateKey)) {
+        const existing = currentWardrobeItems.get(duplicateKey);
         const name = r.displayName || '';
         r.isDuplicate = true;
-        duplicateItems.push({ itemNo: r.itemNo, name, existingName });
-        console.log(`Warning: duplicate item: id=${r.itemNo}, name=${name}`);
+        duplicateItems.push({ itemNo: r.itemNo, category: r.displayCat, name, existingName: existing.name });
+        console.log(`Warning: duplicate item: category=${r.displayCat}, id=${r.itemNo}, name=${name}, existing=${existing.name}`);
     }
 }
 
@@ -610,7 +617,7 @@ output += `// Copy these lines into wardrobe1.js\n\n`;
 for (const r of results) output += r.line + '\n';
 if (duplicateItems.length > 0) {
     output += `\n// === DUPLICATE WARNINGS ===\n`;
-    for (const d of duplicateItems) output += `// id=${d.itemNo}, name=${d.name}\n`;
+    for (const d of duplicateItems) output += `// category=${d.category}, id=${d.itemNo}, name=${d.name}, existing=${d.existingName}\n`;
 }
 if (errors.length > 0) { output += `\n// === ERRORS ===\n`; for (const e of errors) output += `// ${e}\n`; }
 if (warnings.length > 0) { output += `\n// === WARNINGS ===\n`; for (const w of warnings) output += `// ${w}\n`; }
