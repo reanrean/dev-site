@@ -5,12 +5,12 @@
   - make_f --l
   - flist, levels -> update both repo
 - **make_wardrobe1 (with input/) -> verify and update**
-- **convert to wardrobe in maint**
+- **make_wardrobe**
 - make_data
   - TODO: guild_shop, construct
 - make_data source check
 - comp_wardrobe
-- hs-rean
+- make_hs
 - **top_ajglz_modules**
 - **full_top_ajglz**
 - aojiaogongluezu
