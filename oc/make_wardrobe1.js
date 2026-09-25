@@ -310,6 +310,93 @@ function parseTaskDrops(filePath) {
     return dropMap;
 }
 
+// === Parse 梦境 task clothing rewards ===
+// Returns: rewarded clothes id -> dream task id.
+function parseDesignerTaskRewards(filePath) {
+    const rewardTaskMap = {};
+    if (!filePath) return rewardTaskMap;
+    const raw = fs.readFileSync(filePath, 'utf8');
+    const tableStart = raw.indexOf('gdDesigner_Maintask ={');
+    if (tableStart === -1) return rewardTaskMap;
+
+    const entryRe = /\[(\d+)\]\s*=\s*\{/g;
+    entryRe.lastIndex = tableStart;
+    let em;
+    while ((em = entryRe.exec(raw)) !== null) {
+        const taskId = parseInt(em[1]);
+        const result = extractBraced(raw, em.index);
+        if (!result) break;
+        const rewardsIdx = result.content.indexOf('rewards=');
+        if (rewardsIdx !== -1) {
+            const rewards = extractBraced(result.content, rewardsIdx);
+            if (rewards) {
+                const rewardRe = /id\s*=\s*(\d+)\s*,\s*num\s*=\s*\d+\s*,\s*type\s*=\s*0/g;
+                let rm;
+                while ((rm = rewardRe.exec(rewards.content)) !== null) {
+                    rewardTaskMap[parseInt(rm[1])] = taskId;
+                }
+            }
+        }
+        entryRe.lastIndex = result.end + 1;
+    }
+    return rewardTaskMap;
+}
+
+// === Parse 萤光之灵 skill bonus + dream task source ===
+// treasure_data: clothes id -> primary skill id/max level + acquisition/evolution task
+// treasure_skill_common: skill id -> scored attribute
+// treasure_skill_detail: skill id + level -> fixed score bonus
+function parseTreasureSkills(treasurePath, skillCommonPath, skillDetailPath) {
+    const result = {};
+    if (!treasurePath || !skillCommonPath || !skillDetailPath) return result;
+
+    const treasureRaw = fs.readFileSync(treasurePath, 'utf8');
+    const commonRaw = fs.readFileSync(skillCommonPath, 'utf8');
+    const detailRaw = fs.readFileSync(skillDetailPath, 'utf8');
+
+    const attributeByType = {
+        1: '华丽', 2: '成熟', 3: '优雅', 4: '清纯', 5: '保暖',
+        6: '简约', 7: '可爱', 8: '活泼', 9: '性感', 10: '清凉',
+    };
+
+    const skillAttributes = {};
+    const commonRe = /\[(\d+)\]\s*=\s*\{[^\n]*?type\s*=\s*"?(\d+)"?\s*,/g;
+    let m;
+    while ((m = commonRe.exec(commonRaw)) !== null) {
+        const attribute = attributeByType[parseInt(m[2])];
+        if (attribute) skillAttributes[parseInt(m[1])] = attribute;
+    }
+
+    const skillFactors = {};
+    const detailRe = /\[(\d+)\]\s*=\s*\{[^\n]*?factor\s*=\s*(\d+)\s*,/g;
+    while ((m = detailRe.exec(detailRaw)) !== null) {
+        skillFactors[parseInt(m[1])] = parseInt(m[2]);
+    }
+
+    const clothesRe = /clothesid\s*=\s*(88\d+)\s*,[\s\S]{0,300}?\[1\]\s*=\s*\{id\s*=\s*(\d+)\s*,\s*max\s*=\s*(\d+)\s*,[\s\S]{0,180}?task_id\s*=\s*(\d+)\s*,/g;
+    while ((m = clothesRe.exec(treasureRaw)) !== null) {
+        const clothesId = parseInt(m[1]);
+        const skillId = parseInt(m[2]);
+        const skillLevel = parseInt(m[3]);
+        const taskId = parseInt(m[4]);
+        const detailId = parseInt(String(skillId) + String(skillLevel).padStart(2, '0'));
+        const attribute = skillAttributes[skillId];
+        const factor = skillFactors[detailId];
+        if (attribute && factor != null) {
+            result[clothesId] = { attribute, factor, skillId, skillLevel, taskId };
+        }
+    }
+
+    return result;
+}
+
+function resolveDreamTaskSource(source, taskId) {
+    // Explicit sources such as 梦境·浮梦岛 or an already-complete 梦境·梅拉2-6 stay untouched.
+    if (!/^梦境·.+\d$/.test(source) || /-\d+$/.test(source)) return source;
+    const taskStep = taskId % 100;
+    return taskStep > 0 ? `${source}-${taskStep}` : source;
+}
+
 // === Load all lua data ===
 console.log("Parsing lua data...");
 const suitMap = parseLuaSuits(luaPath('achievement_detail_data.lua_de'));
@@ -318,7 +405,13 @@ const suitDyes = parseSuitConvert(luaPath('suit_convert_data.lua_de'));
 const amputationSet = parseAmputation(luaPath('clothes_amputation_data.lua_de'));
 const evoMap = parseEvolution(luaPath('clothes_evolution_data.lua_de'));
 const taskDropMap = parseTaskDrops(luaPath('task_detail_clothes_data.lua_de'));
-console.log(`Suits: ${Object.keys(suitMap).length}, CvtSeries: ${Object.keys(baseToDyes).length}, SuitConvert: ${Object.keys(suitDyes).length}, Amputation: ${amputationSet.size}, Evo: ${Object.keys(evoMap).length}, TaskDrops: ${Object.keys(taskDropMap).length}`);
+const designerTaskRewards = parseDesignerTaskRewards(luaPath('designer_maintask_data.lua_de'));
+const treasureSkills = parseTreasureSkills(
+    luaPath('treasure_data.lua_de'),
+    luaPath('treasure_skill_common.lua_de'),
+    luaPath('treasure_skill_detail.lua_de')
+);
+console.log(`Suits: ${Object.keys(suitMap).length}, CvtSeries: ${Object.keys(baseToDyes).length}, SuitConvert: ${Object.keys(suitDyes).length}, Amputation: ${amputationSet.size}, Evo: ${Object.keys(evoMap).length}, TaskDrops: ${Object.keys(taskDropMap).length}, DreamRewards: ${Object.keys(designerTaskRewards).length}, TreasureSkills: ${Object.keys(treasureSkills).length}`);
 
 // === Grade conversion ===
 function valueToGrade(rawValue, divisor) {
@@ -404,13 +497,23 @@ function generateLine(idx, source, abbrev, suitName, version) {
     const divisor = divisorMap[cat];
     if (!divisor) return { error: `No divisor for "${cat}" id ${id}` };
     const grades = rawAttrs.map(v => valueToGrade(v, divisor));
-    const tag1Name = special1 ? (tagMap[special1] || '') : '';
-    const tag2Name = special2 ? (tagMap[special2] || '') : '';
+    let tag1Name = special1 ? (tagMap[special1] || '') : '';
+    let tag2Name = special2 ? (tagMap[special2] || '') : '';
+    let finalSource = source;
+    if (cat === '萤光之灵') {
+        const treasureSkill = treasureSkills[id];
+        if (!treasureSkill) return { error: `No treasure skill data for 萤光之灵 id ${id}` };
+        tag1Name = `${treasureSkill.attribute}+${treasureSkill.factor}`;
+        tag2Name = '';
+        finalSource = resolveDreamTaskSource(source, treasureSkill.taskId);
+    } else if (designerTaskRewards[id]) {
+        finalSource = resolveDreamTaskSource(source, designerTaskRewards[id]);
+    }
     const tagStr = [tag1Name, tag2Name].filter(Boolean).join('/');
     const yizhi = amputationSet.has(id) ? '1' : '';
     const rawDisplayName = displayClothesName(row, id, nightIds, dayIds);
     const displayName = escapeForWardrobeLine(rawDisplayName);
-    const line = `  ['${displayName}','${displayCat}','${itemNo}','${rare}','${grades[0]}','${grades[1]}','${grades[2]}','${grades[3]}','${grades[4]}','${grades[5]}','${grades[6]}','${grades[7]}','${grades[8]}','${grades[9]}','${tagStr}','${source}','${suitName || ''}','${version}','${abbrev}','${yizhi}'],`;
+    const line = `  ['${displayName}','${displayCat}','${itemNo}','${rare}','${grades[0]}','${grades[1]}','${grades[2]}','${grades[3]}','${grades[4]}','${grades[5]}','${grades[6]}','${grades[7]}','${grades[8]}','${grades[9]}','${tagStr}','${finalSource}','${suitName || ''}','${version}','${abbrev}','${yizhi}'],`;
     const dashIdx = displayCat.indexOf('-');
     const csvRow = {
         编号: itemNo,
@@ -431,7 +534,7 @@ function generateLine(idx, source, abbrev, suitName, version) {
         清凉: grades[8], // grades[8] = row[30] = 清凉 (cols swapped in Excel)
         保暖: grades[9], // grades[9] = row[29] = 保暖 (cols swapped in Excel)
         义肢: yizhi,
-        获取来源: source,
+        获取来源: finalSource,
         套装: suitName || '',
         短来源: abbrev,
     };
